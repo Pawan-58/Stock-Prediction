@@ -287,3 +287,74 @@ function showStatus(message, isError) {
         setTimeout(() => { statusMessage.textContent = ""; }, 5000);
     }
 }
+// ===============================
+// ADVANCED ASSET LEDGER SYSTEM
+// ===============================
+
+let portfolioAssets = JSON.parse(localStorage.getItem("portfolioAssets")) || [
+    "NASDAQ:AAPL",
+    "NASDAQ:MSFT",
+    "BITSTAMP:BTCUSD"
+];
+
+// Render Portfolio Table
+function renderAssets() {
+    const table = document.getElementById("assetTable");
+    table.innerHTML = "";
+
+    portfolioAssets.forEach((symbol, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td style="padding:10px; cursor:pointer; color:var(--accent-glow);" onclick="selectAsset('${symbol}')">
+                ${symbol}
+            </td>
+            <td style="padding:10px;">
+                <button onclick="removeAsset(${index})"
+                    style="background:transparent; border:1px solid var(--danger); color:var(--danger); padding:4px 10px; border-radius:6px; cursor:pointer;">
+                    Remove
+                </button>
+            </td>
+        `;
+        table.appendChild(row);
+    });
+
+    localStorage.setItem("portfolioAssets", JSON.stringify(portfolioAssets));
+}
+
+// Add Asset
+function addAsset() {
+    const input = document.getElementById("assetInput");
+    let symbol = input.value.trim().toUpperCase();
+
+    if (!symbol) return alert("Enter a valid stock symbol!");
+
+    if (!symbol.includes(":")) {
+        symbol = "NASDAQ:" + symbol; // default exchange
+    }
+
+    if (!portfolioAssets.includes(symbol)) {
+        portfolioAssets.push(symbol);
+        renderAssets();
+    }
+
+    input.value = "";
+}
+
+// Remove Asset
+function removeAsset(index) {
+    portfolioAssets.splice(index, 1);
+    renderAssets();
+}
+
+// Select Asset → Update Chart
+function selectAsset(symbol) {
+    currentTicker = symbol;
+    initChart(symbol);
+}
+
+// Initialize Portfolio on Login
+const oldHandleLogin = handleLogin;
+handleLogin = function() {
+    oldHandleLogin();
+    renderAssets();
+};

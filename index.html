@@ -13,83 +13,88 @@
         :root {
             --bg-ultra: #02040a;
             --sidebar-bg: #0d1117;
-            --card-bg: #161b22;
+            --card-bg: #0d1117;
             --accent-glow: #2f81f7;
-            --accent-soft: rgba(47, 129, 247, 0.15);
+            --accent-soft: rgba(47, 129, 247, 0.1);
             --border-color: #30363d;
             --text-primary: #f0f6fc;
             --text-secondary: #8b949e;
             --success: #238636;
             --danger: #da3633;
+            --warning: #d29922;
         }
 
-        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.2s ease; }
         body { margin: 0; background: var(--bg-ultra); color: var(--text-primary); overflow: hidden; height: 100vh; }
 
-        /* --- AUTHENTICATION SCREEN --- */
+        /* --- AUTHENTICATION --- */
         .login-page { height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #161b22 0%, #02040a 100%); position: fixed; width: 100%; z-index: 10000; }
-        .login-card { background: rgba(22, 27, 34, 0.8); backdrop-filter: blur(20px); padding: 50px; border-radius: 32px; border: 1px solid var(--border-color); width: 440px; text-align: center; box-shadow: 0 0 40px rgba(0,0,0,0.8); }
-        .login-card input { width: 100%; padding: 16px; margin: 12px 0; border-radius: 12px; border: 1px solid var(--border-color); background: #010409; color: white; font-size: 1rem; outline: none; text-align: center; }
-        .login-card input:focus { border-color: var(--accent-glow); box-shadow: 0 0 10px var(--accent-soft); }
+        .login-card { background: rgba(13, 17, 23, 0.9); backdrop-filter: blur(20px); padding: 50px; border-radius: 24px; border: 1px solid var(--border-color); width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .login-card input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: #010409; color: white; font-size: 1rem; outline: none; text-align: center; }
         
         /* --- MAIN LAYOUT --- */
-        .terminal-container { display: grid; grid-template-columns: 80px 1fr; height: 100vh; }
-        
-        .nav-rail { background: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding: 25px 0; gap: 30px; }
-        .nav-rail .icon { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+        .terminal-container { display: grid; grid-template-columns: 70px 1fr; height: 100vh; }
+        .nav-rail { background: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 25px; }
+        .nav-rail .icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
         .nav-rail .icon.active { background: var(--accent-soft); color: var(--accent-glow); border: 1px solid var(--accent-glow); }
 
-        .main-stage { overflow-y: auto; display: flex; flex-direction: column; height: 100vh;}
+        .main-stage { overflow-y: auto; display: flex; flex-direction: column; height: 100vh; background: #010409; }
+        .ticker-header { width: 100%; height: 42px; border-bottom: 1px solid var(--border-color); background: #000; }
 
-        .ticker-header { width: 100%; height: 48px; border-bottom: 1px solid var(--border-color); background: #000; overflow: hidden; }
+        .terminal-header { padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; background: var(--sidebar-bg); border-bottom: 1px solid var(--border-color); z-index: 100; }
+        .search-group { display: flex; background: #010409; border: 1px solid var(--border-color); border-radius: 6px; padding: 2px; }
+        .search-group input { background: transparent; border: none; color: white; padding: 8px 12px; width: 200px; outline: none; font-family: 'JetBrains Mono'; font-size: 0.8rem; }
+        .btn-analyze { background: var(--accent-glow); color: white; border: none; border-radius: 4px; padding: 6px 15px; cursor: pointer; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; }
 
-        .terminal-header { padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; background: rgba(13, 17, 23, 0.95); border-bottom: 1px solid var(--border-color); }
-        .search-group { display: flex; background: #010409; border: 1px solid var(--border-color); border-radius: 8px; padding: 4px; }
-        .search-group input { background: transparent; border: none; color: white; padding: 8px 15px; width: 250px; outline: none; font-family: 'JetBrains Mono', monospace; }
-        .btn-analyze { background: var(--accent-glow); color: white; border: none; border-radius: 6px; padding: 8px 20px; cursor: pointer; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; }
-
-        .terminal-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; padding: 20px; min-height: 800px; }
+        /* --- GRID SYSTEM --- */
+        .terminal-grid { display: grid; grid-template-columns: 1fr 380px; gap: 15px; padding: 15px; }
+        .glass-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; position: relative; }
         
-        .glass-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; position: relative; overflow: hidden; }
-        
-        #tv-chart-main { height: 500px; width: 100%; }
+        /* --- NEWS TERMINAL WRAPPER --- */
+        .market-intelligence-wrapper { 
+            border: 1px solid #334155; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            background: #131722; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
+            margin-top: 15px;
+        }
 
-        .ai-panel { display: flex; flex-direction: column; gap: 20px; }
-        .stat-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .stat-label { color: var(--text-secondary); font-size: 0.85rem; }
-        .stat-value { font-family: 'JetBrains Mono', monospace; font-weight: bold; }
-
-        .signal-badge { padding: 30px; text-align: center; border-radius: 12px; background: #0d1117; border: 1px solid var(--border-color); }
-        .signal-text { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; }
-        
-        .prediction-loader { width: 100%; height: 4px; background: #30363d; margin-top: 15px; display: none; }
-        .prediction-progress { height: 100%; width: 0%; background: var(--accent-glow); transition: width 1s linear; }
-
-        .view-content { padding: 0; }
+        /* --- LEDGER --- */
+        .view-content { animation: fadeIn 0.3s ease; height: 100%; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .hidden { display: none !important; }
+        .portfolio-view { padding: 20px 30px; }
         
-        /* Portfolio Specific Styling */
-        .portfolio-view { padding: 40px; }
-        .asset-card { background: #0d1117; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 20px;}
+        .ledger-table { width: 100%; border-collapse: collapse; }
+        .ledger-table th { text-align: left; color: var(--text-secondary); font-size: 0.65rem; padding: 15px; border-bottom: 1px solid var(--border-color); text-transform: uppercase; }
+        .ledger-table td { padding: 15px; border-bottom: 1px solid #161b22; font-size: 0.85rem; }
+        .ledger-row:hover { background: rgba(255,255,255,0.02); }
+
+        .pulse { animation: pulse-anim 2s infinite; }
+        @keyframes pulse-anim { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div class="login-page" id="loginPage">
         <div class="login-card">
-            <h1 style="margin: 0; font-weight: 800; letter-spacing: -2px; font-size: 2.5rem;">STOCK<span style="color: var(--accent-glow)">AI</span></h1>
-            <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 0.9rem;">ENCRYPTED TERMINAL ACCESS</p>
+            <h1 style="margin: 0; font-weight: 800; letter-spacing: -1.5px;">STOCK<span style="color: var(--accent-glow)">AI</span></h1>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 0.7rem; letter-spacing: 2px;">ENCRYPTED TERMINAL v4.0</p>
             <input id="user" placeholder="OPERATOR ID" value="ADMIN-99">
             <input id="pass" type="password" placeholder="SECURITY KEY" value="admin123">
-            <button class="btn-analyze" style="width: 100%; padding: 18px; font-size: 1rem;" onclick="handleLogin()">ACCESS SYSTEM</button>
-            <p id="loginErr" style="color: var(--danger); font-size: 0.8rem; margin-top: 20px;"></p>
+            <button class="btn-analyze" style="width: 100%; padding: 14px;" onclick="handleLogin()">Authorize Entry</button>
+            <p id="loginErr" style="color: var(--danger); font-size: 0.7rem; margin-top: 15px; font-family: 'JetBrains Mono';"></p>
         </div>
     </div>
 
     <div class="terminal-container" id="mainDashboard" style="display: none;">
         <aside class="nav-rail">
-            <div class="icon active" id="nav-market" onclick="switchTab('market')">📊</div>
-            <div class="icon" id="nav-portfolio" onclick="switchTab('portfolio')">💼</div>
+            <div class="icon active" id="nav-market" onclick="switchTab('market')" title="Market Intel">📊</div>
+            <div class="icon" id="nav-portfolio" onclick="switchTab('portfolio')" title="Asset Ledger">💼</div>
             <div class="icon" style="margin-top: auto; color: var(--danger);" onclick="location.reload()">🔒</div>
         </aside>
 
@@ -98,52 +103,48 @@
 
             <header class="terminal-header">
                 <div>
-                    <span style="color: var(--text-secondary); font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">System Node: Active</span>
-                    <h2 id="header-title" style="margin: 0; font-size: 1.4rem;">Stock Prediction</h2>
+                    <h2 id="header-title" style="margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: -0.5px;">Market Intelligence</h2>
                 </div>
                 
                 <div class="search-group">
-                    <input id="stockSearch" placeholder="SEARCH TICKER (SYMBOL)...">
-                    <button class="btn-analyze" onclick="updateView()">Analyze</button>
+                    <input id="stockSearch" placeholder="SEARCH TICKER...">
+                    <button class="btn-analyze" onclick="updateView()">Execute</button>
                 </div>
             </header>
 
             <div id="view-market" class="view-content">
                 <div class="terminal-grid">
-                    <div class="chart-section" style="display: flex; flex-direction: column; gap: 20px;">
-                        <div class="glass-card" id="tv-chart-main"></div>
-                        <div class="glass-card" style="height: 350px;">
-                            <div class="tradingview-widget-container" style="height: 100%;">
-                                <div class="tradingview-widget-container__widget"></div>
-                                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
-                                {
-                                  "width": "100%", "height": "100%",
-                                  "symbolsGroups": [
-                                    { "name": "Watchlist", "symbols": [
-                                      { "name": "NASDAQ:AAPL" }, { "name": "NASDAQ:NVDA" }, { "name": "NASDAQ:TSLA" }, { "name": "BITSTAMP:BTCUSD" }
-                                    ]}
-                                  ],
-                                  "showSymbolLogo": true, "colorTheme": "dark", "isTransparent": true, "locale": "en"
-                                }
-                                </script>
+                    <div style="display: flex; flex-direction: column;">
+                        <div class="glass-card" id="tv-chart-main" style="height: 500px;"></div>
+                        
+                        <div class="market-intelligence-wrapper">
+                            <div style="background: #1e222d; padding: 12px 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #d1d4dc; font-weight: bold; font-family: sans-serif; font-size: 14px; letter-spacing: 1px;">INSTITUTIONAL NEWS WIRE</span>
+                                <span style="color: #2962ff; font-size: 12px; font-weight: bold;">LIVE FEED</span>
                             </div>
+
+                            <div id="news-container" style="height: 400px;">
+                                </div>
                         </div>
                     </div>
 
-                    <div class="ai-panel">
-                        <div class="glass-card" style="padding: 25px;">
-                            <h4 style="margin: 0 0 20px 0; color: var(--accent-glow); font-size: 0.8rem; letter-spacing: 1px;">NEURAL SIGNAL CORE</h4>
-                            <div class="signal-badge">
-                                <div id="predictVal" class="signal-text" style="color: var(--text-secondary);">STANDBY</div>
-                                <div id="predictMeta" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 10px;">Awaiting Data Packet...</div>
-                                <div class="prediction-loader" id="p-loader"><div class="prediction-progress" id="p-bar"></div></div>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="glass-card" style="padding: 20px;">
+                            <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 15px;">NEURAL CORE SIGNAL</div>
+                            <div style="text-align:center; padding: 20px; background: #010409; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div id="predictVal" style="font-size: 1.5rem; font-weight: 800; color: var(--text-secondary);">STANDBY</div>
+                                <div id="predictMeta" style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 5px;">Ready for analysis...</div>
+                            </div>
+                            <div style="margin-top: 15px;">
+                                <div style="display:flex; justify-content:space-between; padding: 8px 0; font-size: 0.75rem; border-bottom: 1px solid #161b22;">
+                                    <span style="color:var(--text-secondary)">Neural Conf.</span><span id="ai-prob" style="font-family:'JetBrains Mono'">--</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="glass-card" style="padding: 25px;">
-                            <h4 style="margin: 0 0 20px 0; color: var(--text-secondary); font-size: 0.8rem;">REAL-TIME SCAN</h4>
-                            <div class="stat-row"><span class="stat-label">Neural Probability</span><span class="stat-value" id="ai-prob">--</span></div>
-                            <div class="stat-row"><span class="stat-label">Market Volatility</span><span class="stat-value" style="color: var(--success);">12.45</span></div>
-                            <div class="stat-row"><span class="stat-label">Liquidity Profile</span><span class="stat-value">High</span></div>
+
+                        <div class="glass-card" style="flex-grow: 1; min-height: 400px;">
+                            <div style="padding: 10px 15px; font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">MARKET MOVERS</div>
+                            <div id="movers-container" style="height: 100%;"></div>
                         </div>
                     </div>
                 </div>
@@ -151,112 +152,165 @@
 
             <div id="view-portfolio" class="view-content hidden">
                 <div class="portfolio-view">
-                    <h3 style="color: var(--accent-glow); margin-bottom: 5px;">Institutional Asset Ledger</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 30px;">Tracking 4 global positions via encrypted satellite link.</p>
-                    
-                    <div class="glass-card" style="height: 500px; padding: 10px;">
-                        <div class="tradingview-widget-container" style="height: 100%;">
-                            <div class="tradingview-widget-container__widget"></div>
-                            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
-                            {
-                              "colorTheme": "dark", "dateRange": "12M", "showChart": true, "locale": "en",
-                              "width": "100%", "height": "100%", "largeChartHeight": -1, "isTransparent": true, "showSymbolLogo": true,
-                              "tabs": [{ "title": "Portfolio Assets", "symbols": [
-                                  { "s": "NASDAQ:AAPL" }, { "s": "NASDAQ:MSFT" }, { "s": "BITSTAMP:BTCUSD" }, { "s": "FX:EURUSD" }
-                              ]}]
-                            }
-                            </script>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                        <h2 style="margin:0; font-size: 1.5rem;">Asset Ledger</h2>
+                        <div class="search-group">
+                            <input id="assetInput" placeholder="ADD SYMBOL...">
+                            <button class="btn-analyze" onclick="addAsset()">Add</button>
                         </div>
+                    </div>
+                    <div class="glass-card">
+                        <table class="ledger-table">
+                            <thead>
+                                <tr>
+                                    <th>Security</th>
+                                    <th>Status</th>
+                                    <th>Current Price</th>
+                                    <th>24H Change</th>
+                                    <th>Management</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assetTable"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-
         </main>
     </div>
 
 <script>
     let currentTicker = "NASDAQ:AAPL";
+    let myAssets = JSON.parse(localStorage.getItem('stockai_ledger')) || ["AAPL", "NVDA", "TSLA", "BTCUSD"];
 
     function handleLogin() {
         if(user.value && pass.value === "admin123") {
             loginPage.style.display = "none";
             mainDashboard.style.display = "grid";
-            
-            // Initialization Sequence
-            initTicker();
-            setTimeout(() => initChart(currentTicker), 200);
+            initTickerTape();
+            initMovers();
+            renderLedger();
+            setTimeout(() => { updateView(true); }, 300);
         } else {
-            loginErr.innerText = "CRITICAL ERROR: ACCESS KEY INVALID";
+            loginErr.innerText = "ACCESS DENIED: INVALID CREDENTIALS";
         }
     }
 
-    // Fixed Ticker Tape Initialization
-    function initTicker() {
-        const container = document.getElementById('ticker-container');
+    function initTickerTape() {
         const script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
         script.async = true;
         script.innerHTML = JSON.stringify({
-            "symbols": [
-                {"proName":"FOREXCOM:SPXUSD","title":"S&P 500"},
-                {"proName":"FOREXCOM:NSXUSD","title":"Nasdaq 100"},
-                {"proName":"BITSTAMP:BTCUSD","title":"Bitcoin"},
-                {"proName":"NASDAQ:NVDA","title":"NVIDIA"},
-                {"proName":"NASDAQ:TSLA","title":"TESLA"}
-            ],
-            "showSymbolLogo": true,
+            "symbols": [{"proName":"NASDAQ:AAPL"},{"proName":"NASDAQ:TSLA"},{"proName":"BINANCE:BTCUSDT"},{"proName":"NASDAQ:NVDA"}],
+            "colorTheme": "dark", "isTransparent": true, "displayMode": "adaptive", "locale": "en"
+        });
+        document.getElementById('ticker-container').appendChild(script);
+    }
+
+    function initMovers() {
+        const script = document.createElement('script');
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js";
+        script.async = true;
+        script.innerHTML = JSON.stringify({
+            "colorTheme": "dark", "dateRange": "12M", "exchange": "US", "showChart": false, "width": "100%", "height": "100%", "isTransparent": true
+        });
+        document.getElementById('movers-container').appendChild(script);
+    }
+
+    function injectNews(symbol) {
+        const container = document.getElementById('news-container');
+        container.innerHTML = ''; // Clear existing widget
+        const script = document.createElement('script');
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
+        script.async = true;
+        script.innerHTML = JSON.stringify({
+            "feedMode": "symbol",
+            "symbol": symbol,
+            "isTransparent": true,
+            "displayMode": "regular",
+            "width": "100%",
+            "height": "100%",
             "colorTheme": "dark",
-            "isTransparent": false,
-            "displayMode": "adaptive",
             "locale": "en"
         });
-        container.innerHTML = ''; 
         container.appendChild(script);
     }
 
-    function initChart(symbol) {
+    function updateView(force = false) {
+        let ticker = currentTicker;
+        if(!force) {
+            const inputVal = document.getElementById('stockSearch').value.toUpperCase().trim();
+            if(!inputVal) return;
+            ticker = inputVal;
+        }
+        
+        currentTicker = ticker;
+        injectNews(ticker); // Updates News Terminal
+
         new TradingView.widget({
-            "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Etc/UTC",
-            "theme": "dark", "style": "1", "locale": "en", "container_id": "tv-chart-main",
-            "backgroundColor": "#161b22", "gridColor": "rgba(48, 54, 61, 0.5)",
-            "allow_symbol_change": true, "details": true, "hotlist": true
+            "autosize": true, "symbol": ticker, "interval": "D", "theme": "dark",
+            "style": "1", "container_id": "tv-chart-main", "backgroundColor": "#0d1117",
+            "hide_top_toolbar": false, "allow_symbol_change": true, "save_image": false
         });
+
+        const val = document.getElementById('predictVal');
+        val.innerText = "ANALYZING...";
+        val.style.color = "var(--warning)";
+        val.classList.add('pulse');
+
+        setTimeout(() => {
+            const isUp = Math.random() > 0.5;
+            val.classList.remove('pulse');
+            val.innerText = isUp ? "STRONG BUY" : "REDUCE";
+            val.style.color = isUp ? "#3fb950" : "#f85149";
+            document.getElementById('predictMeta').innerText = "Signal confirmed for " + ticker;
+            document.getElementById('ai-prob').innerText = (Math.random() * 15 + 82).toFixed(2) + "%";
+        }, 1200);
     }
 
     function switchTab(tab) {
-        document.getElementById('view-market').classList.add('hidden');
-        document.getElementById('view-portfolio').classList.add('hidden');
-        document.getElementById('nav-market').classList.remove('active');
-        document.getElementById('nav-portfolio').classList.remove('active');
-
-        document.getElementById('view-' + tab).classList.remove('hidden');
-        document.getElementById('nav-' + tab).classList.add('active');
-        document.getElementById('header-title').innerText = tab === 'market' ? 'Stock Prediction' : 'Asset Ledger';
+        document.getElementById('view-market').classList.toggle('hidden', tab !== 'market');
+        document.getElementById('view-portfolio').classList.toggle('hidden', tab !== 'portfolio');
+        document.getElementById('nav-market').classList.toggle('active', tab === 'market');
+        document.getElementById('nav-portfolio').classList.toggle('active', tab === 'portfolio');
+        document.getElementById('header-title').innerText = tab === 'market' ? 'Market Intelligence' : 'Asset Ledger';
     }
 
-    function updateView() {
-        const ticker = document.getElementById('stockSearch').value.toUpperCase();
-        if(!ticker) return;
-        currentTicker = ticker;
-        initChart(ticker);
+    function renderLedger() {
+        const body = document.getElementById('assetTable');
+        body.innerHTML = '';
+        myAssets.forEach((asset, index) => {
+            const price = (Math.random() * 500 + 100).toFixed(2);
+            const change = (Math.random() * 4 - 2).toFixed(2);
+            body.innerHTML += `
+                <tr class="ledger-row">
+                    <td onclick="viewSymbol('${asset}')" style="cursor:pointer; font-weight:700; color:var(--accent-glow)">${asset}</td>
+                    <td><span style="font-size:0.6rem; background:var(--accent-soft); color:var(--accent-glow); padding:2px 6px; border-radius:4px;">TRACKING</span></td>
+                    <td style="font-family:'JetBrains Mono'">$${price}</td>
+                    <td style="font-family:'JetBrains Mono'; color:${change >= 0 ? 'var(--success)' : 'var(--danger)'}">${change}%</td>
+                    <td><button onclick="removeAsset(${index})" style="background:transparent; border:1px solid var(--danger); color:var(--danger); cursor:pointer; font-size:0.6rem; border-radius:4px; padding:3px 8px;">TERMINATE</button></td>
+                </tr>`;
+        });
+        localStorage.setItem('stockai_ledger', JSON.stringify(myAssets));
+    }
 
-        const loader = document.getElementById('p-loader');
-        const bar = document.getElementById('p-bar');
-        const val = document.getElementById('predictVal');
-        
-        loader.style.display = 'block';
-        val.innerText = "SCANNING";
-        bar.style.width = "0%";
-        setTimeout(() => bar.style.width = "100%", 100);
+    function addAsset() {
+        const val = document.getElementById('assetInput').value.toUpperCase().trim();
+        if(val && !myAssets.includes(val)) {
+            myAssets.push(val);
+            renderLedger();
+            document.getElementById('assetInput').value = '';
+        }
+    }
 
-        setTimeout(() => {
-            const isUp = Math.random() > 0.45;
-            val.innerText = isUp ? "STRONG BUY" : "REDUCE";
-            val.style.color = isUp ? "var(--success)" : "var(--danger)";
-            document.getElementById('ai-prob').innerText = (Math.random() * 20 + 78).toFixed(2) + "%";
-            loader.style.display = 'none';
-        }, 1500);
+    function removeAsset(index) {
+        myAssets.splice(index, 1);
+        renderLedger();
+    }
+
+    function viewSymbol(s) {
+        document.getElementById('stockSearch').value = s;
+        switchTab('market');
+        updateView();
     }
 </script>
 </body>
