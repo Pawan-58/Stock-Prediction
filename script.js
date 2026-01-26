@@ -1,238 +1,203 @@
-// ================= CONFIG =================
+/**
+ * TRADING TERMINAL CORE SYSTEM
+ * Handled: Live Market, AI Predictions, Portfolio Ledger, TradingView Integration
+ */
+
+// ================= CONFIG & STATE =================
 const BACKEND_URL = "http://127.0.0.1:8000";
 
-// DOM Elements
-const symbolInput = document.getElementById("stockInput") || document.getElementById("symbol");
-const predictBtn = document.getElementById("predictBtn");
-const statusMessage = document.getElementById("statusMessage");
-const predictionResult = document.getElementById("predictionResult");
-const selectedStockLabel = document.getElementById("selectedStockDisplay") || document.getElementById("selectedStock");
-const gainersTableBody = document.getElementById("gainersTableBody");
-const marketChartCanvas = document.getElementById("marketChartCanvas");
+const State = {
+    currentSymbol: "AAPL",
+    currentExchange: "NASDAQ",
+    fullTicker: "NASDAQ:AAPL",
+    isAnalyzing: false
+};
 
-let chartInstance = null; // Original Chart instance
-let marketChart;        // Live Market Chart instance
+// DOM Elements Registry
+const DOM = {
+    symbolInput: () => document.getElementById("stockInput") || document.getElementById("symbol") || document.getElementById("stockSearch"),
+    predictBtn: document.getElementById("predictBtn"),
+    statusMessage: document.getElementById("statusMessage"),
+    predictionResult: document.getElementById("predictionResult"),
+    selectedLabel: document.getElementById("selectedStockDisplay") || document.getElementById("selectedStock"),
+    gainersTable: document.getElementById("gainersTableBody"),
+    marketCanvas: document.getElementById("marketChartCanvas"),
+    assetTable: document.getElementById("assetTable"),
+    assetInput: document.getElementById("assetInput")
+};
 
 // ================= INITIALIZATION =================
 document.addEventListener("DOMContentLoaded", () => {
-    initChart(); // Pre-initialize Chart.js
-    loadTopGainers(); // Initial load of Indian Top Gainers
-    loadLiveMarket(); // Initial load of Live Market Chart
+    console.log("Terminal Initializing...");
     
-    // Support both direct button click and Form Submit
-    if (predictBtn) {
-        predictBtn.addEventListener("click", handlePredictionRequest);
+    // Initialize UI Components
+    initChart(State.fullTicker); 
+    loadTopGainers();
+    loadLiveMarket();
+    renderAssets();
+
+    // Event Listeners
+    if (DOM.predictBtn) {
+        DOM.predictBtn.addEventListener("click", handlePredictionRequest);
     }
 
-    const form = document.getElementById("predictForm");
-    if (form) {
-        form.addEventListener("submit", (e) => {
+    const predictForm = document.getElementById("predictForm");
+    if (predictForm) {
+        predictForm.addEventListener("submit", (e) => {
             e.preventDefault();
             handlePredictionRequest();
         });
     }
 
-    // Refresh Top Gainers every 2 minutes
-    setInterval(loadTopGainers, 120000);
-    
-    // Auto refresh live market every 30 sec
-    setInterval(loadLiveMarket, 30000);
+    // Background Refresh Cycles
+    setInterval(loadTopGainers, 120000); // 2 min
+    setInterval(loadLiveMarket, 30000);  // 30 sec
 });
 
-// ================= LIVE MARKET CHART LOGIC =================
+// Optimized Resize Listener (Debounced)
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        console.log("Adjusting UI for new screen size...");
+        initChart(State.fullTicker);
+    }, 250);
+});
 
-async function loadLiveMarket(){
-  try{
-    // Uses the current input value or defaults to AAPL
-    const symbol = symbolInput.value.trim().toUpperCase() || "AAPL";
+// ================= TRADINGVIEW WIDGET =================
 
-    // 1️⃣ Get live price
-    const priceRes = await fetch(`${BACKEND_URL}/live-price?symbol=${symbol}`);
-    const priceData = await priceRes.json();
+function initChart(symbol) {
+    const chartContainer = document.getElementById("tv-chart-main") || document.getElementById("tv-chart-container");
+    if (!chartContainer) return;
 
-    // Update the live price dashboard element if it exists
-    const liveIndexElem = document.getElementById('live-index');
-    if(liveIndexElem) liveIndexElem.innerText = priceData.price.toFixed(2);
+    chartContainer.innerHTML = ""; // Clear existing instance
     
-    console.log("Live price:", priceData.price);
-
-    // 2️⃣ Get live chart candles
-    const chartRes = await fetch(`${BACKEND_URL}/live-chart?symbol=${symbol}`);
-    const chartData = await chartRes.json();
-
-    const labels = chartData.times.map(t =>
-      new Date(t * 1000).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})
-    );
-
-    if(marketChart){
-      marketChart.data.labels = labels;
-      marketChart.data.datasets[0].data = chartData.prices;
-      marketChart.update();
-    }else if(marketChartCanvas){
-      marketChart = new Chart(marketChartCanvas, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [{
-            data: chartData.prices,
-            borderColor: "#2563eb",
-            fill: true,
-            tension: 0.4,
-            backgroundColor: "rgba(37,99,235,.25)",
-            pointRadius: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins:{legend:{display:false}},
-          scales:{
-            x:{ticks:{color:"#9ca3af"}},
-            y:{ticks:{color:"#9ca3af"}}
-          }
-        }
-      });
+    // Auto-formatting for Indian Stocks if prefix is missing
+    let formattedSymbol = symbol;
+    if (!symbol.includes(":")) {
+        formattedSymbol = symbol.endsWith(".NS") ? `NSE:${symbol.replace(".NS", "")}` : `NASDAQ:${symbol}`;
     }
 
-  }catch(e){
-    console.error("Market API error", e);
-  }
+    new TradingView.widget({
+        "autosize": true,
+        "symbol": formattedSymbol,
+        "interval": "D",
+        "timezone": "Etc/UTC",
+        "theme": "dark",
+        "style": "1",
+        "locale": "en",
+        "container_id": chartContainer.id,
+        "hide_top_toolbar": window.innerWidth < 768,
+        "hide_side_toolbar": window.innerWidth < 768,
+        "allow_symbol_change": true,
+        "save_image": false,
+        "details": window.innerWidth > 1024,
+        "hotlist": false,
+        "calendar": false,
+        "enable_publishing": false,
+        "hide_legend": false
+    });
 }
 
-// ================= TOP GAINERS & TICKER =================
-
-async function loadTopGainers() {
-    if (!gainersTableBody) return;
-
-    try {
-        const response = await fetch(`${BACKEND_URL}/top-gainers`);
-        if (!response.ok) throw new Error("Gainer API Error");
-        const data = await response.json();
-
-        gainersTableBody.innerHTML = "";
-        data.forEach((stock, index) => {
-            const row = `
-                <tr>
-                    <td><strong>${stock.symbol}</strong></td>
-                    <td>₹${stock.price.toLocaleString('en-IN')}</td>
-                    <td class="${stock.change_pct >= 0 ? 'up' : 'down'}">
-                        ${stock.change_pct >= 0 ? '+' : ''}${stock.change_pct}%
-                    </td>
-                </tr>
-            `;
-            gainersTableBody.innerHTML += row;
-
-            const tickerElem = document.getElementById(`ticker-${index + 1}`);
-            if (tickerElem) {
-                tickerElem.innerHTML = `${stock.symbol} <span class="up">+${stock.change_pct}%</span>`;
-            }
-        });
-    } catch (err) {
-        console.error("Failed to load gainers:", err);
-        gainersTableBody.innerHTML = `<tr><td colspan="3" style="color:orange">Market Data offline</td></tr>`;
-    }
-}
-
-// ================= CORE PREDICTION LOGIC =================
+// ================= AI PREDICTION ENGINE =================
 
 async function handlePredictionRequest() {
-    let symbol = symbolInput.value.trim().toUpperCase();
+    if (State.isAnalyzing) return;
+
+    const input = DOM.symbolInput();
+    let rawSymbol = input.value.trim().toUpperCase();
     
-    if (!symbol) {
-        showStatus("Please enter a symbol (e.g., RELIANCE or TCS)", true);
+    if (!rawSymbol) {
+        updateStatus("Please enter a valid symbol", true);
         return;
     }
 
-    const searchSymbol = symbol.includes(".") ? symbol : `${symbol}`;
+    // Clean symbol for backend (remove exchange prefix if exists)
+    const cleanSymbol = rawSymbol.includes(":") ? rawSymbol.split(":")[1] : rawSymbol;
+    State.currentSymbol = cleanSymbol;
+    State.fullTicker = rawSymbol.includes(":") ? rawSymbol : `NSE:${cleanSymbol}`;
 
-    // Trigger AI prediction and chart sync
-    await getPrediction();
-    await runFullPrediction(symbol, searchSymbol);
-}
-
-async function runFullPrediction(originalSymbol, searchSymbol) {
     setLoading(true);
-    showStatus(`Analyzing ${originalSymbol}...`, false);
-    
+    updateStatus(`Neural Core analyzing ${cleanSymbol}...`, false);
+
     try {
-        const marketRes = await fetch(`${BACKEND_URL}/market?symbol=${searchSymbol}`);
-        const marketData = await marketRes.json();
+        // Sync Chart & Live View immediately
+        initChart(State.fullTicker);
+        
+        // Parallel fetch for speed
+        const [predRes, marketRes] = await Promise.all([
+            fetch(`${BACKEND_URL}/predict?symbol=${cleanSymbol}`),
+            fetch(`${BACKEND_URL}/market?symbol=${cleanSymbol}`).catch(() => null)
+        ]);
 
-        const predRes = await fetch(`${BACKEND_URL}/predict?symbol=${searchSymbol}`);
         const predData = await predRes.json();
+        
+        // Display AI Result
+        displayPrediction(cleanSymbol, predData);
+        
+        // Update Live Dashboard if market data exists
+        if (marketRes && marketRes.ok) {
+            const marketData = await marketRes.json();
+            updateLiveUI(cleanSymbol, marketData);
+        }
 
-        updateUI(originalSymbol, predData, marketData);
-        updateTradingView(searchSymbol); 
-        loadLiveMarket(); // Update the live chart canvas
-        showStatus("Analysis complete ✅", false);
-
+        updateStatus("Analysis Complete ✅", false);
     } catch (err) {
-        console.error("Connection Error:", err);
-        showStatus("❌ Backend Offline.", true);
+        console.error("Core Prediction Error:", err);
+        updateStatus("❌ Intelligence Offline", true);
     } finally {
         setLoading(false);
     }
 }
 
-// ================= AI PREDICTION (AS PROVIDED) =================
+function displayPrediction(symbol, data) {
+    if (DOM.selectedLabel) DOM.selectedLabel.innerText = `Active: ${symbol}`;
+    if (!DOM.predictionResult) return;
 
-async function getPrediction(){
-  const symbol = symbolInput.value.trim().toUpperCase();
-  if(selectedStockLabel) selectedStockLabel.innerText = "Selected: " + symbol;
-  if(predictionResult) predictionResult.innerText = "⏳ AI analyzing...";
-
-  try{
-    const r = await fetch(`${BACKEND_URL}/predict?symbol=${symbol}`);
-    const d = await r.json();
-
-    if(predictionResult) {
-        predictionResult.innerHTML =
-          d.prediction === "UP"
-          ? `<span class="up">📈 ${symbol} WILL GO UP</span>`
-          : `<span class="down">📉 ${symbol} WILL GO DOWN</span>`;
-    }
-  }catch{
-    if(predictionResult) predictionResult.innerText = "❌ Backend not connected";
-  }
+    const isUp = data.prediction === "UP";
+    DOM.predictionResult.innerHTML = `
+        <div class="prediction-card ${isUp ? 'trend-up' : 'trend-down'}">
+            <span class="icon">${isUp ? '📈' : '📉'}</span>
+            <span class="text">${symbol} SIGNAL: ${data.prediction}</span>
+        </div>
+    `;
 }
 
-// ================= UI UPDATERS =================
+// ================= LIVE MARKET FEED =================
 
-function updateUI(symbol, predData, marketData) {
-    if (selectedStockLabel) selectedStockLabel.innerText = "Active: " + symbol;
-    
-    const liveIndex = document.getElementById('live-index');
-    const liveChange = document.getElementById('live-change');
-    const statSymbol = document.getElementById('stat-symbol');
+async function loadLiveMarket() {
+    if (!DOM.marketCanvas) return;
 
-    if (liveIndex) liveIndex.innerText = marketData.last_price.toFixed(2);
-    if (statSymbol) statSymbol.innerText = symbol;
-    if (liveChange) {
-        liveChange.innerText = `${marketData.change >= 0 ? '+' : ''}${marketData.change.toFixed(2)}%`;
-        liveChange.className = marketData.change >= 0 ? 'up' : 'down';
-    }
+    try {
+        const symbol = State.currentSymbol;
+        const response = await fetch(`${BACKEND_URL}/live-chart?symbol=${symbol}`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const labels = data.times.map(t => new Date(t * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
 
-    if (marketData.prices) {
-        updateChart(marketData.prices);
+        if (marketChart) {
+            marketChart.data.labels = labels;
+            marketChart.data.datasets[0].data = data.prices;
+            marketChart.update('none'); // Update without animation for performance
+        } else {
+            createLiveChart(labels, data.prices);
+        }
+    } catch (e) {
+        console.warn("Live feed standby...");
     }
 }
 
-// ================= CHART HANDLING =================
-
-function initChart() {
-    const canvas = document.getElementById("marketChart") || document.getElementById("priceChart");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-
-    chartInstance = new Chart(ctx, {
-        type: "line",
+function createLiveChart(labels, prices) {
+    const ctx = DOM.marketCanvas.getContext('2d');
+    marketChart = new Chart(ctx, {
+        type: 'line',
         data: {
-            labels: Array.from({length: 30}, (_, i) => i + 1),
+            labels: labels,
             datasets: [{
-                label: "Price Trend",
-                data: [],
-                borderColor: "#3b82f6",
-                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                data: prices,
+                borderColor: '#38bdf8',
+                backgroundColor: 'rgba(56, 189, 248, 0.1)',
                 borderWidth: 2,
                 fill: true,
                 tension: 0.4,
@@ -244,117 +209,85 @@ function initChart() {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-                x: { display: false },
-                y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#9ca3af" } }
+                x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } }
             }
         }
     });
 }
 
-function updateChart(prices) {
-    if (!chartInstance) initChart();
-    chartInstance.data.labels = prices.map((_, i) => i + 1);
-    chartInstance.data.datasets[0].data = prices;
-    chartInstance.update();
-}
+// ================= ASSET LEDGER SYSTEM =================
 
-function updateTradingView(symbol) {
-    new TradingView.widget({
-        "autosize": true,
-        "symbol": `NSE:${symbol.replace(".NS", "")}`,
-        "interval": "D",
-        "timezone": "Asia/Kolkata",
-        "theme": "dark",
-        "style": "1",
-        "locale": "en",
-        "container_id": "tv-chart-container" 
-    });
-}
+let portfolioAssets = JSON.parse(localStorage.getItem("portfolioAssets")) || ["NSE:RELIANCE", "NASDAQ:AAPL", "BITSTAMP:BTCUSD"];
 
-// ================= HELPERS =================
-
-function setLoading(isLoading) {
-    if (!predictBtn) return;
-    predictBtn.disabled = isLoading;
-    predictBtn.innerHTML = isLoading ? 'Analyzing...' : "Predict & Sync";
-}
-
-function showStatus(message, isError) {
-    if (!statusMessage) return;
-    statusMessage.textContent = message;
-    statusMessage.style.color = isError ? "#ef4444" : "#22c55e";
-    if (!isError) {
-        setTimeout(() => { statusMessage.textContent = ""; }, 5000);
-    }
-}
-// ===============================
-// ADVANCED ASSET LEDGER SYSTEM
-// ===============================
-
-let portfolioAssets = JSON.parse(localStorage.getItem("portfolioAssets")) || [
-    "NASDAQ:AAPL",
-    "NASDAQ:MSFT",
-    "BITSTAMP:BTCUSD"
-];
-
-// Render Portfolio Table
 function renderAssets() {
-    const table = document.getElementById("assetTable");
-    table.innerHTML = "";
-
-    portfolioAssets.forEach((symbol, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td style="padding:10px; cursor:pointer; color:var(--accent-glow);" onclick="selectAsset('${symbol}')">
-                ${symbol}
+    if (!DOM.assetTable) return;
+    DOM.assetTable.innerHTML = portfolioAssets.map((symbol, index) => `
+        <tr>
+            <td class="symbol-cell" onclick="selectAsset('${symbol}')">${symbol}</td>
+            <td class="action-cell">
+                <button class="btn-remove" onclick="removeAsset(${index})">Remove</button>
             </td>
-            <td style="padding:10px;">
-                <button onclick="removeAsset(${index})"
-                    style="background:transparent; border:1px solid var(--danger); color:var(--danger); padding:4px 10px; border-radius:6px; cursor:pointer;">
-                    Remove
-                </button>
-            </td>
-        `;
-        table.appendChild(row);
-    });
-
+        </tr>
+    `).join('');
     localStorage.setItem("portfolioAssets", JSON.stringify(portfolioAssets));
 }
 
-// Add Asset
 function addAsset() {
-    const input = document.getElementById("assetInput");
-    let symbol = input.value.trim().toUpperCase();
-
-    if (!symbol) return alert("Enter a valid stock symbol!");
-
-    if (!symbol.includes(":")) {
-        symbol = "NASDAQ:" + symbol; // default exchange
-    }
-
-    if (!portfolioAssets.includes(symbol)) {
-        portfolioAssets.push(symbol);
+    const val = DOM.assetInput.value.trim().toUpperCase();
+    if (!val) return;
+    
+    const formatted = val.includes(":") ? val : `NSE:${val}`;
+    if (!portfolioAssets.includes(formatted)) {
+        portfolioAssets.push(formatted);
         renderAssets();
     }
-
-    input.value = "";
+    DOM.assetInput.value = "";
 }
 
-// Remove Asset
 function removeAsset(index) {
     portfolioAssets.splice(index, 1);
     renderAssets();
 }
 
-// Select Asset → Update Chart
 function selectAsset(symbol) {
-    currentTicker = symbol;
+    State.fullTicker = symbol;
+    State.currentSymbol = symbol.split(":")[1] || symbol;
+    
+    const input = DOM.symbolInput();
+    if(input) input.value = State.currentSymbol;
+    
     initChart(symbol);
+    handlePredictionRequest();
 }
 
-// Initialize Portfolio on Login
-const oldHandleLogin = handleLogin;
-handleLogin = function() {
-    oldHandleLogin();
-    renderAssets();
-};
+// ================= HELPERS =================
+
+function setLoading(loading) {
+    State.isAnalyzing = loading;
+    if (DOM.predictBtn) {
+        DOM.predictBtn.disabled = loading;
+        DOM.predictBtn.innerHTML = loading ? '<span class="loader"></span> ANALYZING...' : "PREDICT & SYNC";
+    }
+}
+
+function updateStatus(msg, isError) {
+    if (!DOM.statusMessage) return;
+    DOM.statusMessage.innerText = msg;
+    DOM.statusMessage.className = isError ? "status-err" : "status-ok";
+}
+
+async function loadTopGainers() {
+    if (!DOM.gainersTable) return;
+    try {
+        const r = await fetch(`${BACKEND_URL}/top-gainers`);
+        const data = await r.json();
+        DOM.gainersTable.innerHTML = data.map(stock => `
+            <tr>
+                <td><strong>${stock.symbol}</strong></td>
+                <td>₹${stock.price.toLocaleString('en-IN')}</td>
+                <td class="${stock.change_pct >= 0 ? 'up' : 'down'}">${stock.change_pct}%</td>
+            </tr>
+        `).join('');
+    } catch (e) { console.error("Gainer Feed Error"); }
+}
