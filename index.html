@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>StockAI Pro | Global Institutional Terminal</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockAI Pro | Institutional Terminal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <script src="https://s3.tradingview.com/tv.js"></script>
 
@@ -11,266 +11,274 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
 
 :root {
-  --bg-ultra:#02040a;
-  --sidebar-bg:#0d1117;
-  --card-bg:#0d1117;
-  --accent-glow:#2f81f7;
-  --accent-soft:rgba(47,129,247,0.1);
-  --border-color:#30363d;
-  --text-primary:#f0f6fc;
-  --text-secondary:#8b949e;
-  --success:#238636;
-  --danger:#da3633;
-  --warning:#d29922;
+  --bg-ultra: #02040a;
+  --sidebar-bg: #0d1117;
+  --card-bg: #161b22;
+  --accent-glow: #2f81f7;
+  --accent-soft: rgba(47, 129, 247, 0.1);
+  --border-color: #30363d;
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --success: #3fb950;
+  --danger: #f85149;
+  --warning: #d29922;
+  --nav-height: 70px;
 }
 
-*{box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;}
-body{margin:0;background:var(--bg-ultra);color:var(--text-primary);height:100vh;overflow:hidden}
+* { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; background: var(--bg-ultra); color: var(--text-primary); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
 /* ===== LAYOUT ===== */
-.terminal-container{display:grid;grid-template-columns:70px 1fr;height:100vh}
+.terminal-container { display: grid; grid-template-columns: 70px 1fr; height: 100vh; width: 100%; }
 
-.nav-rail{
-  background:var(--sidebar-bg);
-  border-right:1px solid var(--border-color);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:20px 0;
-  gap:25px;
-}
-.nav-rail .icon{
-  width:42px;height:42px;display:flex;align-items:center;justify-content:center;
-  border-radius:10px;cursor:pointer;color:var(--text-secondary);font-size:1.2rem;
-}
-.nav-rail .icon.active{
-  background:var(--accent-soft);color:var(--accent-glow);border:1px solid var(--accent-glow);
+/* Side Navigation (Desktop) */
+.nav-rail {
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  gap: 25px;
+  z-index: 100;
 }
 
-.main-stage{overflow-y:auto;display:flex;flex-direction:column;height:100vh;background:#010409}
-
-.ticker-header{width:100%;height:42px;border-bottom:1px solid var(--border-color);background:#000}
-
-.terminal-header{
-  padding:10px 15px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background:var(--sidebar-bg);
-  border-bottom:1px solid var(--border-color);
-  gap:10px;
+/* Bottom Navigation (Mobile) */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  height: var(--nav-height);
+  background: var(--sidebar-bg);
+  border-top: 1px solid var(--border-color);
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.search-group{
-  display:flex;background:#010409;border:1px solid var(--border-color);
-  border-radius:6px;padding:2px;
-}
-.search-group input{
-  background:transparent;border:none;color:white;padding:8px 12px;width:200px;
-  outline:none;font-family:'JetBrains Mono';font-size:.8rem;
-}
-.btn-analyze{
-  background:var(--accent-glow);color:white;border:none;border-radius:4px;
-  padding:6px 15px;cursor:pointer;font-weight:700;font-size:.7rem;
+.nav-rail .icon, .mobile-nav .icon {
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; cursor: pointer; color: var(--text-secondary); font-size: 1.4rem;
+  transition: all 0.2s ease;
 }
 
-/* ===== MOBILE MENU BUTTON ===== */
-.mobile-controls{display:none}
-.menu-toggle{
-  background:var(--accent-soft);
-  border:1px solid var(--accent-glow);
-  color:var(--accent-glow);
-  font-size:1.4rem;
-  padding:4px 10px;
-  border-radius:6px;
-  cursor:pointer;
+.icon.active { background: var(--accent-soft); color: var(--accent-glow); box-shadow: 0 0 15px var(--accent-soft); }
+
+.main-stage { 
+    overflow-y: auto; 
+    height: 100vh; 
+    background: #010409; 
+    padding-bottom: 80px; /* Space for mobile nav */
 }
 
-/* ===== GRID ===== */
-.content-grid{
-  display:grid;
-  grid-template-columns:1fr 380px;
-  gap:15px;
-  padding:15px;
+/* ===== HEADER & SEARCH ===== */
+.ticker-header { width: 100%; height: 42px; border-bottom: 1px solid var(--border-color); background: #000; flex-shrink: 0; }
+
+.terminal-header {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--sidebar-bg);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 90;
 }
 
-.glass-card{
-  background:var(--card-bg);
-  border:1px solid var(--border-color);
-  border-radius:8px;
-  padding:12px;
+.search-group {
+  display: flex; background: #010409; border: 1px solid var(--border-color);
+  border-radius: 8px; padding: 4px; transition: border-color 0.3s;
+}
+.search-group:focus-within { border-color: var(--accent-glow); }
+
+.search-group input {
+  background: transparent; border: none; color: white; padding: 8px 12px; width: 180px;
+  outline: none; font-family: 'JetBrains Mono'; font-size: .85rem;
+}
+.btn-analyze {
+  background: var(--accent-glow); color: white; border: none; border-radius: 6px;
+  padding: 8px 16px; cursor: pointer; font-weight: 800; font-size: .75rem; text-transform: uppercase;
 }
 
-/* ===== CHART ===== */
-.chart-container{
-  width:100%;
-  height:500px;
-  border-radius:10px;
-  overflow:hidden;
-}
-#tv-chart-main{width:100%;height:100%}
-
-/* ===== NEWS ===== */
-.news-header{
-  display:flex;
-  justify-content:space-between;
-  font-size:.75rem;
-  font-weight:bold;
-  padding:8px 10px;
-  background:#1e222d;
-  border-bottom:1px solid #334155;
-}
-#news-container{height:350px;width:100%}
-
-/* ===== SIDEBAR ===== */
-.sidebar{
-  display:flex;
-  flex-direction:column;
-  gap:15px;
+/* ===== GRID & CARDS ===== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  padding: 20px;
 }
 
-/* ===== MOVERS ===== */
-#movers-container{height:350px;width:100%}
-
-/* ===== LEDGER TABLE ===== */
-.ledger-table{
-  width:100%;
-  border-collapse:collapse;
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 15px;
 }
-.ledger-table th{
-  text-align:left;
-  font-size:.65rem;
-  color:var(--text-secondary);
-  padding:10px;
-  border-bottom:1px solid var(--border-color);
+
+.card-inner { padding: 15px; }
+
+/* ===== COMPONENTS ===== */
+.chart-container { width: 100%; height: 500px; background: #000; }
+#tv-chart-main { width: 100%; height: 100%; }
+
+.news-header {
+  display: flex; justify-content: space-between; font-size: .7rem;
+  letter-spacing: 1px; font-weight: 800; padding: 12px 15px;
+  background: #1e222d; border-bottom: 1px solid #334155;
 }
-.ledger-table td{
-  padding:10px;
-  border-bottom:1px solid #161b22;
-  font-size:.85rem;
-}
-.ledger-row:hover{background:rgba(255,255,255,.03)}
+#news-container { height: 400px; width: 100%; }
+#movers-container { height: 400px; width: 100%; }
 
-.hidden{display:none}
+.hidden { display: none !important; }
 
-/* ===== MOBILE ===== */
-@media(max-width:768px){
-  .mobile-controls{display:block}
-  .content-grid{grid-template-columns:1fr;padding:6px}
-  .chart-container{height:60vh;min-height:420px}
+/* ===== TABLE STYLING ===== */
+.ledger-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+.ledger-table th { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.75rem; }
+.ledger-table td { padding: 12px; border-bottom: 1px solid #1c2128; font-size: 0.9rem; }
 
-  .sidebar{
-    position:fixed;
-    top:0;
-    right:-100%;
-    width:80%;
-    height:100vh;
-    background:var(--sidebar-bg);
-    z-index:999;
-    padding:12px;
-    transition:.3s ease-in-out;
-    box-shadow:-10px 0 30px rgba(0,0,0,.6);
+/* ===== MOBILE OVERRIDES ===== */
+@media (max-width: 900px) {
+  .terminal-container { grid-template-columns: 1fr; }
+  .nav-rail { display: none; }
+  .mobile-nav { display: flex; }
+  .main-stage { height: calc(100vh - var(--nav-height)); }
+  
+  .content-grid { 
+    grid-template-columns: 1fr; 
+    padding: 10px; 
+    gap: 10px;
   }
-  .sidebar.active{right:0}
-
-  .search-group{width:100%}
-  .search-group input{width:100%}
+  
+  .terminal-header { flex-direction: column; gap: 12px; align-items: stretch; text-align: center; }
+  .search-group input { width: 100%; }
+  
+  .chart-container { height: 45vh; border-radius: 0; }
+  
+  .sidebar { order: 2; }
+  .main-terminal { order: 1; }
+  .btn-analyze { width: 100px; }
 }
 
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:10px}
+/* ===== AI SIGNAL STYLING ===== */
+.signal-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
 </style>
 </head>
-<body>
+<body id="app-root">
 
 <div class="terminal-container" id="mainDashboard">
 
   <aside class="nav-rail">
-    <div class="icon active" id="nav-market" onclick="switchTab('market')">📊</div>
-    <div class="icon" id="nav-portfolio" onclick="switchTab('portfolio')">💼</div>
-    <div class="icon" style="margin-top:auto;color:red" onclick="location.reload()">🔒</div>
+    <div class="icon active" id="nav-market-desktop" onclick="switchTab('market')">📊</div>
+    <div class="icon" id="nav-portfolio-desktop" onclick="switchTab('portfolio')">💼</div>
+    <div class="icon" style="margin-top:auto;color:var(--danger)" onclick="handleLogout()">🔒</div>
   </aside>
+
+  <nav class="mobile-nav">
+    <div class="icon active" id="nav-market-mobile" onclick="switchTab('market')">📊</div>
+    <div class="icon" id="nav-portfolio-mobile" onclick="switchTab('portfolio')">💼</div>
+    <div class="icon" style="color:var(--danger)" onclick="handleLogout()">🔒</div>
+  </nav>
 
   <main class="main-stage">
     <div class="ticker-header" id="ticker-container"></div>
 
     <header class="terminal-header">
-      <div class="mobile-controls">
-        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-      </div>
-
-      <h2 id="header-title">Market Intelligence</h2>
+      <h2 id="header-title" style="margin:0; font-size: 1.1rem; font-weight: 800;">Market Intelligence</h2>
 
       <div class="search-group">
-        <input id="stockSearch" placeholder="SEARCH TICKER...">
+        <input id="stockSearch" placeholder="TICKER (eg: BTCUSD)">
         <button class="btn-analyze" onclick="updateView()">Execute</button>
       </div>
     </header>
 
-    <!-- ===== MARKET VIEW ===== -->
     <div id="view-market">
-
       <div class="content-grid">
 
         <div class="main-terminal">
-          <div class="chart-container">
-            <div id="tv-chart-main"></div>
+          <div class="glass-card">
+            <div class="chart-container">
+                <div id="tv-chart-main"></div>
+            </div>
           </div>
 
           <div class="glass-card">
             <div class="news-header">
               <span>INSTITUTIONAL NEWS WIRE</span>
-              <span style="color:#2962ff">LIVE FEED</span>
+              <span style="color:var(--accent-glow)">● LIVE</span>
             </div>
             <div id="news-container"></div>
           </div>
         </div>
 
-        <aside class="sidebar" id="sidebarMenu">
-
+        <aside class="sidebar">
           <div class="glass-card">
-            <div style="font-size:.7rem;color:gray">NEURAL CORE SIGNAL</div>
-            <div id="predictVal" style="font-size:1.5rem;font-weight:bold">STANDBY</div>
-            <div id="predictMeta" style="font-size:.7rem;color:gray">Ready...</div>
-            <div style="margin-top:10px">Neural Conf: <span id="ai-prob">--</span></div>
+            <div class="card-inner">
+                <div style="font-size:.65rem; color:var(--text-secondary); letter-spacing: 1px; font-weight:bold">NEURAL CORE SIGNAL</div>
+                <div class="signal-box">
+                    <div id="predictVal" style="font-size:1.8rem; font-weight:900; color:var(--text-secondary)">STANDBY</div>
+                    <div id="predictMeta" style="font-size:.7rem; color:var(--text-secondary); margin-top:5px">System Initialized...</div>
+                </div>
+                <div style="font-size:.75rem; display:flex; justify-content: space-between;">
+                    <span>Neural Confidence:</span>
+                    <span id="ai-prob" style="font-family:'JetBrains Mono'; color:var(--accent-glow)">--</span>
+                </div>
+            </div>
           </div>
 
           <div class="glass-card">
-            <div style="font-size:.7rem;color:gray;margin-bottom:5px">MARKET MOVERS</div>
+            <div class="news-header">MARKET MOVERS</div>
             <div id="movers-container"></div>
           </div>
-
         </aside>
 
       </div>
     </div>
 
-    <!-- ===== ASSET LEDGER VIEW ===== -->
-    <div id="view-portfolio" class="hidden" style="padding:15px">
+    <div id="view-portfolio" class="hidden">
+      <div class="content-grid" style="grid-template-columns: 1fr;">
+        <div class="glass-card">
+            <div class="card-inner">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin:0">Asset Ledger</h2>
+                    <div class="search-group">
+                      <input id="assetInput" placeholder="ADD SYMBOL...">
+                      <button class="btn-analyze" onclick="addAsset()">Add</button>
+                    </div>
+                </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-        <h2>Asset Ledger</h2>
-        <div class="search-group">
-          <input id="assetInput" placeholder="ADD SYMBOL...">
-          <button class="btn-analyze" onclick="addAsset()">Add</button>
+                <div style="overflow-x: auto;">
+                    <table class="ledger-table">
+                      <thead>
+                        <tr>
+                          <th>Security</th>
+                          <th>Status</th>
+                          <th>Price</th>
+                          <th>Change</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="assetTable"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
       </div>
-
-      <div class="glass-card">
-        <table class="ledger-table">
-          <thead>
-            <tr>
-              <th>Security</th>
-              <th>Status</th>
-              <th>Price</th>
-              <th>Change</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="assetTable"></tbody>
-        </table>
-      </div>
-
     </div>
 
   </main>
@@ -280,33 +288,51 @@ body{margin:0;background:var(--bg-ultra);color:var(--text-primary);height:100vh;
 let currentTicker="NASDAQ:AAPL";
 let myAssets = JSON.parse(localStorage.getItem("stockai_ledger")) || ["AAPL","NVDA","TSLA","BTCUSD"];
 
-/* ===== MOBILE SIDEBAR ===== */
-function toggleSidebar(){
-  document.getElementById("sidebarMenu").classList.toggle("active");
+/* ===== LOGOUT FUNCTION ===== */
+function handleLogout() {
+    const confirmLogout = confirm("Are you sure you want to logout from the Institutional Terminal?");
+    if (confirmLogout) {
+        // Clear local storage if needed, or redirect
+        // localStorage.clear(); 
+        document.getElementById('app-root').style.opacity = '0.3';
+        document.getElementById('app-root').style.pointerEvents = 'none';
+        
+        // Simulating a redirect to a login page
+        setTimeout(() => {
+            alert("Session Closed. Returning to Login...");
+            location.reload(); // Restarts the app
+        }, 800);
+    }
 }
 
 /* ===== TAB SWITCH ===== */
 function switchTab(tab){
-  document.getElementById("view-market").classList.toggle("hidden", tab!=="market");
-  document.getElementById("view-portfolio").classList.toggle("hidden", tab!=="portfolio");
+  const isMarket = tab === "market";
+  document.getElementById("view-market").classList.toggle("hidden", !isMarket);
+  document.getElementById("view-portfolio").classList.toggle("hidden", isMarket);
 
-  document.getElementById("nav-market").classList.toggle("active", tab==="market");
-  document.getElementById("nav-portfolio").classList.toggle("active", tab==="portfolio");
+  // Update Desktop Nav Icons
+  document.getElementById("nav-market-desktop").classList.toggle("active", isMarket);
+  document.getElementById("nav-portfolio-desktop").classList.toggle("active", !isMarket);
 
-  document.getElementById("header-title").innerText = tab==="market" ? "Market Intelligence" : "Asset Ledger";
+  // Update Mobile Nav Icons
+  document.getElementById("nav-market-mobile").classList.toggle("active", isMarket);
+  document.getElementById("nav-portfolio-mobile").classList.toggle("active", !isMarket);
+
+  document.getElementById("header-title").innerText = isMarket ? "Market Intelligence" : "Asset Ledger";
 }
 
-/* ===== TICKER ===== */
+/* ===== TICKER WIDGET ===== */
 function initTicker(){
   const script=document.createElement("script");
   script.src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
   script.async=true;
   script.innerHTML=JSON.stringify({
     symbols:[
-      {proName:"NASDAQ:AAPL"},
-      {proName:"NASDAQ:NVDA"},
-      {proName:"NASDAQ:TSLA"},
-      {proName:"BITSTAMP:BTCUSD"}
+      {proName:"NASDAQ:AAPL", title:"Apple"},
+      {proName:"NASDAQ:NVDA", title:"Nvidia"},
+      {proName:"NASDAQ:TSLA", title:"Tesla"},
+      {proName:"BITSTAMP:BTCUSD", title:"Bitcoin"}
     ],
     colorTheme:"dark",
     isTransparent:true,
@@ -316,9 +342,10 @@ function initTicker(){
   document.getElementById("ticker-container").appendChild(script);
 }
 
-/* ===== MOVERS ===== */
+/* ===== HOTLISTS (MOVERS) ===== */
 function initMovers(){
   const container=document.getElementById("movers-container");
+  if(!container) return;
   container.innerHTML="";
   const script=document.createElement("script");
   script.src="https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js";
@@ -334,9 +361,10 @@ function initMovers(){
   container.appendChild(script);
 }
 
-/* ===== NEWS ===== */
+/* ===== NEWS TIMELINE ===== */
 function injectNews(symbol){
   const container=document.getElementById("news-container");
+  if(!container) return;
   container.innerHTML="";
   const script=document.createElement("script");
   script.src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
@@ -354,45 +382,60 @@ function injectNews(symbol){
   container.appendChild(script);
 }
 
-/* ===== CHART + AI ===== */
+/* ===== MAIN UPDATE FUNCTION ===== */
 function updateView(){
-  const ticker=document.getElementById("stockSearch").value || currentTicker;
-  currentTicker=ticker;
+  const input = document.getElementById("stockSearch").value.toUpperCase().trim();
+  const ticker = input || currentTicker;
+  currentTicker = ticker;
 
+  // TradingView Chart
   new TradingView.widget({
-    autosize:true,
-    symbol:ticker,
-    interval:"D",
-    theme:"dark",
-    container_id:"tv-chart-main"
+    autosize: true,
+    symbol: ticker,
+    interval: "D",
+    theme: "dark",
+    style: "1",
+    locale: "en",
+    toolbar_bg: "#f1f3f6",
+    enable_publishing: false,
+    hide_side_toolbar: false,
+    allow_symbol_change: true,
+    container_id: "tv-chart-main"
   });
 
   injectNews(ticker);
 
+  // AI Signal Simulation
   const val=document.getElementById("predictVal");
+  const meta=document.getElementById("predictMeta");
   val.innerText="ANALYZING...";
+  val.style.color = "var(--text-secondary)";
+  
   setTimeout(()=>{
     const isUp=Math.random()>0.5;
-    val.innerText=isUp?"STRONG BUY":"REDUCE";
-    val.style.color=isUp?"lime":"red";
+    val.innerText=isUp ? "STRONG BUY" : "REDUCE";
+    val.style.color=isUp ? "var(--success)" : "var(--danger)";
+    meta.innerText = "Target Confirmed for " + ticker;
     document.getElementById("ai-prob").innerText=(Math.random()*15+80).toFixed(2)+"%";
-  },1000);
+  },1200);
 }
 
-/* ===== LEDGER ===== */
+/* ===== LEDGER LOGIC ===== */
 function renderLedger(){
   const body=document.getElementById("assetTable");
+  if(!body) return;
   body.innerHTML="";
   myAssets.forEach((asset,index)=>{
     const price=(Math.random()*500+100).toFixed(2);
     const change=(Math.random()*4-2).toFixed(2);
+    const isPos = change >= 0;
     body.innerHTML+=`
       <tr class="ledger-row">
         <td onclick="viewSymbol('${asset}')" style="cursor:pointer;color:var(--accent-glow);font-weight:bold">${asset}</td>
-        <td>TRACKING</td>
-        <td>$${price}</td>
-        <td style="color:${change>=0?'lime':'red'}">${change}%</td>
-        <td><button onclick="removeAsset(${index})" style="background:none;border:1px solid red;color:red;padding:3px 6px;font-size:.6rem">REMOVE</button></td>
+        <td style="font-size: 0.7rem; color: var(--text-secondary)">TRACKING</td>
+        <td style="font-family:'JetBrains Mono'">$${price}</td>
+        <td style="color:${isPos?'var(--success)':'var(--danger)'}; font-family:'JetBrains Mono'">${isPos?'+':''}${change}%</td>
+        <td><button onclick="removeAsset(${index})" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:4px 8px;font-size:.65rem;border-radius:4px;cursor:pointer">REMOVE</button></td>
       </tr>`;
   });
   localStorage.setItem("stockai_ledger", JSON.stringify(myAssets));
@@ -418,11 +461,13 @@ function viewSymbol(symbol){
   updateView();
 }
 
-/* ===== INIT ===== */
-initTicker();
-initMovers();
-renderLedger();
-updateView();
+/* ===== INITIALIZATION ===== */
+window.onload = () => {
+    initTicker();
+    initMovers();
+    renderLedger();
+    updateView();
+};
 </script>
 
 </body>
