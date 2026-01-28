@@ -1,474 +1,753 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>StockAI Pro | Institutional Terminal</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8">
+  <title>StockAI Pro | Institutional Terminal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<script src="https://s3.tradingview.com/tv.js"></script>
+  <script src="https://s3.tradingview.com/tv.js"></script>
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
 
-:root {
-  --bg-ultra: #02040a;
-  --sidebar-bg: #0d1117;
-  --card-bg: #161b22;
-  --accent-glow: #2f81f7;
-  --accent-soft: rgba(47, 129, 247, 0.1);
-  --border-color: #30363d;
-  --text-primary: #f0f6fc;
-  --text-secondary: #8b949e;
-  --success: #3fb950;
-  --danger: #f85149;
-  --warning: #d29922;
-  --nav-height: 70px;
-}
+    :root {
+      --bg-ultra: #02040a;
+      --sidebar-bg: #0d1117;
+      --card-bg: #161b22;
+      --accent-glow: #2f81f7;
+      --accent-soft: rgba(47, 129, 247, 0.1);
+      --border-color: #30363d;
+      --text-primary: #f0f6fc;
+      --text-secondary: #8b949e;
+      --success: #3fb950;
+      --danger: #f85149;
+      --warning: #d29922;
+      --nav-height: 70px;
+    }
 
-* { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
-body { margin: 0; background: var(--bg-ultra); color: var(--text-primary); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    * {
+      box-sizing: border-box;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-/* ===== LAYOUT ===== */
-.terminal-container { display: grid; grid-template-columns: 70px 1fr; height: 100vh; width: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg-ultra);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
 
-/* Side Navigation (Desktop) */
-.nav-rail {
-  background: var(--sidebar-bg);
-  border-right: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 0;
-  gap: 25px;
-  z-index: 100;
-}
+    /* ===== LAYOUT ===== */
+    .terminal-container {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      height: 100vh;
+      width: 100%;
+    }
 
-/* Bottom Navigation (Mobile) */
-.mobile-nav {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  height: var(--nav-height);
-  background: var(--sidebar-bg);
-  border-top: 1px solid var(--border-color);
-  justify-content: space-around;
-  align-items: center;
-  z-index: 1000;
-  padding-bottom: env(safe-area-inset-bottom);
-}
+    /* Side Navigation (Desktop) */
+    .nav-rail {
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+      gap: 25px;
+      z-index: 100;
+    }
 
-.nav-rail .icon, .mobile-nav .icon {
-  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
-  border-radius: 12px; cursor: pointer; color: var(--text-secondary); font-size: 1.4rem;
-  transition: all 0.2s ease;
-}
+    /* Bottom Navigation (Mobile) */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      height: var(--nav-height);
+      background: var(--sidebar-bg);
+      border-top: 1px solid var(--border-color);
+      justify-content: space-around;
+      align-items: center;
+      z-index: 1000;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
 
-.icon.active { background: var(--accent-soft); color: var(--accent-glow); box-shadow: 0 0 15px var(--accent-soft); }
+    .nav-rail .icon,
+    .mobile-nav .icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 1.4rem;
+      transition: all 0.2s ease;
+    }
 
-.main-stage { 
-    overflow-y: auto; 
-    height: 100vh; 
-    background: #010409; 
-    padding-bottom: 80px; /* Space for mobile nav */
-}
+    .icon.active {
+      background: var(--accent-soft);
+      color: var(--accent-glow);
+      box-shadow: 0 0 15px var(--accent-soft);
+    }
 
-/* ===== HEADER & SEARCH ===== */
-.ticker-header { width: 100%; height: 42px; border-bottom: 1px solid var(--border-color); background: #000; flex-shrink: 0; }
+    .main-stage {
+      overflow-y: auto;
+      height: 100vh;
+      background: #010409;
+      padding-bottom: 80px;
+      /* Space for mobile nav */
+    }
 
-.terminal-header {
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--sidebar-bg);
-  border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  z-index: 90;
-}
+    /* ===== HEADER & SEARCH ===== */
+    .ticker-header {
+      width: 100%;
+      height: 42px;
+      border-bottom: 1px solid var(--border-color);
+      background: #000;
+      flex-shrink: 0;
+    }
 
-.search-group {
-  display: flex; background: #010409; border: 1px solid var(--border-color);
-  border-radius: 8px; padding: 4px; transition: border-color 0.3s;
-}
-.search-group:focus-within { border-color: var(--accent-glow); }
+    .terminal-header {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--sidebar-bg);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
 
-.search-group input {
-  background: transparent; border: none; color: white; padding: 8px 12px; width: 180px;
-  outline: none; font-family: 'JetBrains Mono'; font-size: .85rem;
-}
-.btn-analyze {
-  background: var(--accent-glow); color: white; border: none; border-radius: 6px;
-  padding: 8px 16px; cursor: pointer; font-weight: 800; font-size: .75rem; text-transform: uppercase;
-}
+    .search-group {
+      display: flex;
+      background: #010409;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 4px;
+      transition: border-color 0.3s;
+    }
 
-/* ===== GRID & CARDS ===== */
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 20px;
-  padding: 20px;
-}
+    .search-group:focus-within {
+      border-color: var(--accent-glow);
+    }
 
-.glass-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 15px;
-}
+    .search-group input {
+      background: transparent;
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      width: 180px;
+      outline: none;
+      font-family: 'JetBrains Mono';
+      font-size: .85rem;
+    }
 
-.card-inner { padding: 15px; }
+    .btn-analyze {
+      background: var(--accent-glow);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: .75rem;
+      text-transform: uppercase;
+    }
 
-/* ===== COMPONENTS ===== */
-.chart-container { width: 100%; height: 500px; background: #000; }
-#tv-chart-main { width: 100%; height: 100%; }
+    /* ===== GRID & CARDS ===== */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+      padding: 20px;
+    }
 
-.news-header {
-  display: flex; justify-content: space-between; font-size: .7rem;
-  letter-spacing: 1px; font-weight: 800; padding: 12px 15px;
-  background: #1e222d; border-bottom: 1px solid #334155;
-}
-#news-container { height: 400px; width: 100%; }
-#movers-container { height: 400px; width: 100%; }
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
 
-.hidden { display: none !important; }
+    .card-inner {
+      padding: 15px;
+    }
 
-/* ===== TABLE STYLING ===== */
-.ledger-table { width: 100%; border-collapse: collapse; min-width: 600px; }
-.ledger-table th { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.75rem; }
-.ledger-table td { padding: 12px; border-bottom: 1px solid #1c2128; font-size: 0.9rem; }
+    /* ===== COMPONENTS ===== */
+    .chart-container {
+      width: 100%;
+      height: 500px;
+      background: #000;
+    }
 
-/* ===== MOBILE OVERRIDES ===== */
-@media (max-width: 900px) {
-  .terminal-container { grid-template-columns: 1fr; }
-  .nav-rail { display: none; }
-  .mobile-nav { display: flex; }
-  .main-stage { height: calc(100vh - var(--nav-height)); }
-  
-  .content-grid { 
-    grid-template-columns: 1fr; 
-    padding: 10px; 
-    gap: 10px;
-  }
-  
-  .terminal-header { flex-direction: column; gap: 12px; align-items: stretch; text-align: center; }
-  .search-group input { width: 100%; }
-  
-  .chart-container { height: 45vh; border-radius: 0; }
-  
-  .sidebar { order: 2; }
-  .main-terminal { order: 1; }
-  .btn-analyze { width: 100px; }
-}
+    #tv-chart-main {
+      width: 100%;
+      height: 100%;
+    }
 
-/* ===== AI SIGNAL STYLING ===== */
-.signal-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 10px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 8px;
-    margin: 10px 0;
-}
+    .news-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: .7rem;
+      letter-spacing: 1px;
+      font-weight: 800;
+      padding: 12px 15px;
+      background: #1e222d;
+      border-bottom: 1px solid #334155;
+    }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
-</style>
+    #news-container {
+      height: 400px;
+      width: 100%;
+    }
+
+    #movers-container {
+      height: 400px;
+      width: 100%;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ===== TABLE STYLING ===== */
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    .ledger-table th {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+    }
+
+    .ledger-table td {
+      padding: 12px;
+      border-bottom: 1px solid #1c2128;
+      font-size: 0.9rem;
+    }
+
+    /* ===== MOBILE OVERRIDES ===== */
+    @media (max-width: 900px) {
+      .terminal-container {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-rail {
+        display: none;
+      }
+
+      .mobile-nav {
+        display: flex;
+      }
+
+      .main-stage {
+        height: calc(100vh - var(--nav-height));
+      }
+
+      .content-grid {
+        grid-template-columns: 1fr;
+        padding: 10px;
+        gap: 10px;
+      }
+
+      .terminal-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+        text-align: center;
+      }
+
+      .search-group input {
+        width: 100%;
+      }
+
+      .chart-container {
+        height: 45vh;
+        border-radius: 0;
+      }
+
+      .sidebar {
+        order: 2;
+      }
+
+      .main-terminal {
+        order: 1;
+      }
+
+      .btn-analyze {
+        width: 100px;
+      }
+    }
+
+    /* ===== AI SIGNAL STYLING ===== */
+    .signal-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 10px;
+    }
+  </style>
 </head>
+
 <body id="app-root">
 
-<div class="terminal-container" id="mainDashboard">
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen"
+    style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0d1117;z-index:9999;display:flex;justify-content:center;align-items:center;">
+    <div
+      style="background:#161b22;padding:40px;border-radius:16px;border:1px solid #30363d;width:350px;text-align:center;box-shadow:0 0 50px rgba(0,0,0,0.5)">
+      <div style="font-size:3rem;margin-bottom:20px">💎</div>
+      <h2 style="color:white;margin-bottom:10px;font-family:'Plus Jakarta Sans'">Institutional Access</h2>
+      <p style="color:#8b949e;font-size:0.9rem;margin-bottom:30px">Enter secure credentials to access the terminal.</p>
 
-  <aside class="nav-rail">
-    <div class="icon active" id="nav-market-desktop" onclick="switchTab('market')">📊</div>
-    <div class="icon" id="nav-portfolio-desktop" onclick="switchTab('portfolio')">💼</div>
-    <div class="icon" style="margin-top:auto;color:var(--danger)" onclick="handleLogout()">🔒</div>
-  </aside>
+      <input type="password" placeholder="Passkey (Any)"
+        style="width:100%;padding:12px;background:#0d1117;border:1px solid #30363d;color:white;border-radius:6px;margin-bottom:20px;outline:none;font-family:'JetBrains Mono'">
 
-  <nav class="mobile-nav">
-    <div class="icon active" id="nav-market-mobile" onclick="switchTab('market')">📊</div>
-    <div class="icon" id="nav-portfolio-mobile" onclick="switchTab('portfolio')">💼</div>
-    <div class="icon" style="color:var(--danger)" onclick="handleLogout()">🔒</div>
-  </nav>
+      <button onclick="handleLogin()"
+        style="width:100%;padding:12px;background:#238636;color:white;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:1rem">AUTHENTICATE</button>
+    </div>
+  </div>
 
-  <main class="main-stage">
-    <div class="ticker-header" id="ticker-container"></div>
+  <div class="terminal-container" id="mainDashboard" style="display:none">
 
-    <header class="terminal-header">
-      <h2 id="header-title" style="margin:0; font-size: 1.1rem; font-weight: 800;">Market Intelligence</h2>
+    <aside class="nav-rail">
+      <div class="icon active" id="nav-market-desktop" onclick="switchTab('market')">📊</div>
+      <div class="icon" id="nav-portfolio-desktop" onclick="switchTab('portfolio')">💼</div>
+      <div class="icon" style="margin-top:auto;color:var(--danger)" onclick="handleLogout()">🔒</div>
+    </aside>
 
-      <div class="search-group">
-        <input id="stockSearch" placeholder="TICKER (eg: BTCUSD)">
-        <button class="btn-analyze" onclick="updateView()">Execute</button>
-      </div>
-    </header>
+    <nav class="mobile-nav">
+      <div class="icon active" id="nav-market-mobile" onclick="switchTab('market')">📊</div>
+      <div class="icon" id="nav-portfolio-mobile" onclick="switchTab('portfolio')">💼</div>
+      <div class="icon" style="color:var(--danger)" onclick="handleLogout()">🔒</div>
+    </nav>
 
-    <div id="view-market">
-      <div class="content-grid">
+    <main class="main-stage">
+      <div class="ticker-header" id="ticker-container"></div>
 
-        <div class="main-terminal">
-          <div class="glass-card">
-            <div class="chart-container">
-                <div id="tv-chart-main"></div>
-            </div>
-          </div>
+      <header class="terminal-header">
+        <h2 id="header-title" style="margin:0; font-size: 1.1rem; font-weight: 800;">Market Intelligence</h2>
 
-          <div class="glass-card">
-            <div class="news-header">
-              <span>INSTITUTIONAL NEWS WIRE</span>
-              <span style="color:var(--accent-glow)">● LIVE</span>
-            </div>
-            <div id="news-container"></div>
-          </div>
+        <div class="search-group">
+          <input id="stockSearch" placeholder="TICKER (eg: BTCUSD)">
+          <button class="btn-analyze" onclick="updateView()">Execute</button>
         </div>
+      </header>
 
-        <aside class="sidebar">
-          <div class="glass-card">
-            <div class="card-inner">
-                <div style="font-size:.65rem; color:var(--text-secondary); letter-spacing: 1px; font-weight:bold">NEURAL CORE SIGNAL</div>
+      <div id="view-market">
+        <div class="content-grid">
+
+          <div class="main-terminal">
+            <div class="glass-card">
+              <div class="chart-container">
+                <div id="tv-chart-main"></div>
+              </div>
+            </div>
+
+            <div class="glass-card">
+              <div class="news-header">
+                <span>INSTITUTIONAL NEWS WIRE</span>
+                <span style="color:var(--accent-glow)">● LIVE</span>
+              </div>
+              <div id="news-container"></div>
+            </div>
+          </div>
+
+          <aside class="sidebar">
+            <div class="glass-card">
+              <div class="card-inner">
+                <div style="font-size:.65rem; color:var(--text-secondary); letter-spacing: 1px; font-weight:bold">NEURAL
+                  CORE SIGNAL</div>
                 <div class="signal-box">
-                    <div id="predictVal" style="font-size:1.8rem; font-weight:900; color:var(--text-secondary)">STANDBY</div>
-                    <div id="predictMeta" style="font-size:.7rem; color:var(--text-secondary); margin-top:5px">System Initialized...</div>
+                  <div id="predictVal" style="font-size:1.8rem; font-weight:900; color:var(--text-secondary)">STANDBY
+                  </div>
+                  <div id="predictMeta" style="font-size:.7rem; color:var(--text-secondary); margin-top:5px">System
+                    Initialized...</div>
                 </div>
                 <div style="font-size:.75rem; display:flex; justify-content: space-between;">
-                    <span>Neural Confidence:</span>
-                    <span id="ai-prob" style="font-family:'JetBrains Mono'; color:var(--accent-glow)">--</span>
+                  <span>Neural Confidence:</span>
+                  <span id="ai-prob" style="font-family:'JetBrains Mono'; color:var(--accent-glow)">--</span>
                 </div>
+              </div>
             </div>
-          </div>
 
-          <div class="glass-card">
-            <div class="news-header">MARKET MOVERS</div>
-            <div id="movers-container"></div>
-          </div>
-        </aside>
-
-      </div>
-    </div>
-
-    <div id="view-portfolio" class="hidden">
-      <div class="content-grid" style="grid-template-columns: 1fr;">
-        <div class="glass-card">
-            <div class="card-inner">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px; flex-wrap: wrap; gap: 10px;">
-                    <h2 style="margin:0">Asset Ledger</h2>
-                    <div class="search-group">
-                      <input id="assetInput" placeholder="ADD SYMBOL...">
-                      <button class="btn-analyze" onclick="addAsset()">Add</button>
-                    </div>
-                </div>
-
-                <div style="overflow-x: auto;">
-                    <table class="ledger-table">
-                      <thead>
-                        <tr>
-                          <th>Security</th>
-                          <th>Status</th>
-                          <th>Price</th>
-                          <th>Change</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody id="assetTable"></tbody>
-                    </table>
-                </div>
+            <div class="glass-card">
+              <div class="news-header">MARKET MOVERS</div>
+              <div id="movers-container"></div>
             </div>
+          </aside>
+
         </div>
       </div>
-    </div>
 
-  </main>
-</div>
+      <div id="view-portfolio" class="hidden">
+        <div class="content-grid" style="grid-template-columns: 1fr;">
+          <div class="glass-card">
+            <div class="card-inner">
+              <div
+                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px; flex-wrap: wrap; gap: 10px;">
+                <h2 style="margin:0">Asset Ledger</h2>
+                <div class="search-group">
+                  <input id="assetInput" placeholder="ADD SYMBOL...">
+                  <button class="btn-analyze" onclick="addAsset()">Add</button>
+                </div>
+              </div>
 
-<script>
-let currentTicker="NASDAQ:AAPL";
-let myAssets = JSON.parse(localStorage.getItem("stockai_ledger")) || ["AAPL","NVDA","TSLA","BTCUSD"];
+              <div style="overflow-x: auto;">
+                <table class="ledger-table">
+                  <thead>
+                    <tr>
+                      <th>Security</th>
+                      <th>Status</th>
+                      <th>Price</th>
+                      <th>Change</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="assetTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-/* ===== LOGOUT FUNCTION ===== */
-function handleLogout() {
-    const confirmLogout = confirm("Are you sure you want to logout from the Institutional Terminal?");
-    if (confirmLogout) {
-        // Clear local storage if needed, or redirect
-        // localStorage.clear(); 
-        document.getElementById('app-root').style.opacity = '0.3';
-        document.getElementById('app-root').style.pointerEvents = 'none';
-        
-        // Simulating a redirect to a login page
+    </main>
+  </div>
+
+  <script>
+    let currentTicker = "NASDAQ:AAPL";
+    let myAssets = JSON.parse(localStorage.getItem("stockai_ledger")) || ["AAPL", "NVDA", "TSLA", "BTCUSD"];
+
+    /* ===== SESSION MANAGEMENT ===== */
+    function checkSession() {
+      const isAuth = localStorage.getItem("institutional_auth") === "true";
+      const loginScreen = document.getElementById("login-screen");
+      const dashboard = document.getElementById("mainDashboard");
+
+      if (isAuth) {
+        loginScreen.style.display = "none";
+        dashboard.style.display = "grid";
         setTimeout(() => {
-            alert("Session Closed. Returning to Login...");
-            location.reload(); // Restarts the app
-        }, 800);
+          initTicker();
+          initMovers();
+          renderLedger();
+          updateView();
+        }, 100);
+      } else {
+        loginScreen.style.display = "flex";
+        dashboard.style.display = "none";
+      }
     }
-}
 
-/* ===== TAB SWITCH ===== */
-function switchTab(tab){
-  const isMarket = tab === "market";
-  document.getElementById("view-market").classList.toggle("hidden", !isMarket);
-  document.getElementById("view-portfolio").classList.toggle("hidden", isMarket);
+    function handleLogin() {
+      const btn = document.querySelector('#login-screen button');
+      btn.innerHTML = "VERIFYING...";
 
-  // Update Desktop Nav Icons
-  document.getElementById("nav-market-desktop").classList.toggle("active", isMarket);
-  document.getElementById("nav-portfolio-desktop").classList.toggle("active", !isMarket);
+      setTimeout(() => {
+        localStorage.setItem("institutional_auth", "true");
+        location.reload();
+      }, 800);
+    }
 
-  // Update Mobile Nav Icons
-  document.getElementById("nav-market-mobile").classList.toggle("active", isMarket);
-  document.getElementById("nav-portfolio-mobile").classList.toggle("active", !isMarket);
+    function handleLogout() {
+      // Professional Logout Overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+        display: flex; justify-content: center; align-items: center; z-index: 10000;
+        opacity: 0; transition: opacity 0.5s ease;
+    `;
+      overlay.innerHTML = `
+        <div style="text-align:center; color:white; font-family:'Plus Jakarta Sans'">
+            <div style="font-size:3rem; margin-bottom:20px">🔒</div>
+            <h2 style="margin:0">Secure Session Terminated</h2>
+            <p style="color:#888">Clearing Encrypted Cache...</p>
+        </div>
+    `;
+      document.body.appendChild(overlay);
 
-  document.getElementById("header-title").innerText = isMarket ? "Market Intelligence" : "Asset Ledger";
-}
+      // Trigger Animation
+      setTimeout(() => overlay.style.opacity = '1', 10);
 
-/* ===== TICKER WIDGET ===== */
-function initTicker(){
-  const script=document.createElement("script");
-  script.src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
-  script.async=true;
-  script.innerHTML=JSON.stringify({
-    symbols:[
-      {proName:"NASDAQ:AAPL", title:"Apple"},
-      {proName:"NASDAQ:NVDA", title:"Nvidia"},
-      {proName:"NASDAQ:TSLA", title:"Tesla"},
-      {proName:"BITSTAMP:BTCUSD", title:"Bitcoin"}
-    ],
-    colorTheme:"dark",
-    isTransparent:true,
-    displayMode:"adaptive",
-    locale:"en"
-  });
-  document.getElementById("ticker-container").appendChild(script);
-}
+      // Clear Session
+      setTimeout(() => {
+        localStorage.removeItem("institutional_auth");
+        location.reload();
+      }, 2000);
+    }
 
-/* ===== HOTLISTS (MOVERS) ===== */
-function initMovers(){
-  const container=document.getElementById("movers-container");
-  if(!container) return;
-  container.innerHTML="";
-  const script=document.createElement("script");
-  script.src="https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js";
-  script.async=true;
-  script.innerHTML=JSON.stringify({
-    colorTheme:"dark",
-    exchange:"US",
-    showChart:false,
-    width:"100%",
-    height:"100%",
-    isTransparent:true
-  });
-  container.appendChild(script);
-}
+    /* ===== TAB SWITCH ===== */
+    function switchTab(tab) {
+      const isMarket = tab === "market";
+      document.getElementById("view-market").classList.toggle("hidden", !isMarket);
+      document.getElementById("view-portfolio").classList.toggle("hidden", isMarket);
 
-/* ===== NEWS TIMELINE ===== */
-function injectNews(symbol){
-  const container=document.getElementById("news-container");
-  if(!container) return;
-  container.innerHTML="";
-  const script=document.createElement("script");
-  script.src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
-  script.async=true;
-  script.innerHTML=JSON.stringify({
-    feedMode:"symbol",
-    symbol:symbol,
-    isTransparent:true,
-    displayMode:"regular",
-    width:"100%",
-    height:"100%",
-    colorTheme:"dark",
-    locale:"en"
-  });
-  container.appendChild(script);
-}
+      document.getElementById("nav-market-desktop").classList.toggle("active", isMarket);
+      document.getElementById("nav-portfolio-desktop").classList.toggle("active", !isMarket);
 
-/* ===== MAIN UPDATE FUNCTION ===== */
-function updateView(){
-  const input = document.getElementById("stockSearch").value.toUpperCase().trim();
-  const ticker = input || currentTicker;
-  currentTicker = ticker;
+      document.getElementById("nav-market-mobile").classList.toggle("active", isMarket);
+      document.getElementById("nav-portfolio-mobile").classList.toggle("active", !isMarket);
 
-  // TradingView Chart
-  new TradingView.widget({
-    autosize: true,
-    symbol: ticker,
-    interval: "D",
-    theme: "dark",
-    style: "1",
-    locale: "en",
-    toolbar_bg: "#f1f3f6",
-    enable_publishing: false,
-    hide_side_toolbar: false,
-    allow_symbol_change: true,
-    container_id: "tv-chart-main"
-  });
+      document.getElementById("header-title").innerText = isMarket ? "Market Intelligence" : "Asset Ledger";
+    }
 
-  injectNews(ticker);
+    /* ===== TICKER WIDGET ===== */
+    function initTicker() {
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        symbols: [
+          { proName: "NASDAQ:AAPL", title: "Apple" },
+          { proName: "NASDAQ:NVDA", title: "Nvidia" },
+          { proName: "NASDAQ:TSLA", title: "Tesla" },
+          { proName: "BITSTAMP:BTCUSD", title: "Bitcoin" },
+          { proName: "TVC:VIX", title: "VIX Index" },
+          { proName: "FOREXCOM:SPXUSD", title: "S&P 500" }
+        ],
+        colorTheme: "dark",
+        isTransparent: true,
+        displayMode: "adaptive",
+        locale: "en"
+      });
+      const container = document.getElementById("ticker-container");
+      if (container) container.appendChild(script);
+    }
 
-  // AI Signal Simulation
-  const val=document.getElementById("predictVal");
-  const meta=document.getElementById("predictMeta");
-  val.innerText="ANALYZING...";
-  val.style.color = "var(--text-secondary)";
-  
-  setTimeout(()=>{
-    const isUp=Math.random()>0.5;
-    val.innerText=isUp ? "STRONG BUY" : "REDUCE";
-    val.style.color=isUp ? "var(--success)" : "var(--danger)";
-    meta.innerText = "Target Confirmed for " + ticker;
-    document.getElementById("ai-prob").innerText=(Math.random()*15+80).toFixed(2)+"%";
-  },1200);
-}
+    /* ===== HOTLISTS (MOVERS) ===== */
+    function initMovers() {
+      const container = document.getElementById("movers-container");
+      if (!container) return;
+      container.innerHTML = "";
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js";
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        colorTheme: "dark",
+        exchange: "US",
+        showChart: false,
+        width: "100%",
+        height: "100%",
+        isTransparent: true
+      });
+      container.appendChild(script);
+    }
 
-/* ===== LEDGER LOGIC ===== */
-function renderLedger(){
-  const body=document.getElementById("assetTable");
-  if(!body) return;
-  body.innerHTML="";
-  myAssets.forEach((asset,index)=>{
-    const price=(Math.random()*500+100).toFixed(2);
-    const change=(Math.random()*4-2).toFixed(2);
-    const isPos = change >= 0;
-    body.innerHTML+=`
+    /* ===== NEWS TIMELINE ===== */
+    function injectNews(symbol) {
+      const container = document.getElementById("news-container");
+      if (!container) return;
+      container.innerHTML = "";
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        feedMode: "symbol",
+        symbol: symbol,
+        isTransparent: true,
+        displayMode: "regular",
+        width: "100%",
+        height: "100%",
+        colorTheme: "dark",
+        locale: "en"
+      });
+      container.appendChild(script);
+    }
+
+    /* ===== MAIN UPDATE FUNCTION ===== */
+    function updateView() {
+      const input = document.getElementById("stockSearch").value.toUpperCase().trim();
+      const ticker = input || currentTicker;
+
+      // AI Signal Connection
+      const val = document.getElementById("predictVal");
+      const meta = document.getElementById("predictMeta");
+      const prob = document.getElementById("ai-prob");
+
+      if (!val) return; // Guard clause if elements missing
+
+      val.innerText = "TRAINING NEURAL CORE...";
+      val.style.color = "var(--text-secondary)";
+      meta.innerText = "Fine-tuning weights on live data...";
+      prob.innerText = "--";
+
+      // Clear News temporarily
+      const movers = document.getElementById("movers-container");
+      if (movers) movers.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#444">Scanning Global Wires...</div>';
+
+      // FETCH PREDICTION FIRST (Validates Symbol)
+      fetch(`http://127.0.0.1:8000/predict?symbol=${ticker}`)
+        .then(response => {
+          if (response.status === 404) throw new Error("Symbol Not Found");
+          if (!response.ok) throw new Error("Prediction Unavailable");
+          return response.json();
+        })
+        .then(data => {
+          const trueSymbol = data.symbol; // Backend symbol (e.g. GC=F)
+          const tvSymbol = data.tv_symbol || trueSymbol; // Widget symbol (e.g. TVC:GOLD)
+
+          currentTicker = trueSymbol;
+
+          // Update External Widgets with VALID symbol
+          const chartContainer = document.getElementById("tv-chart-main");
+          if (chartContainer) {
+            // chartContainer.innerHTML = ""; // Already cleared above for fresh render feel
+
+            // Create Widget
+            new TradingView.widget({
+              autosize: true,
+              symbol: tvSymbol, // Use TV-friendly symbol
+              interval: "D",
+              theme: "dark",
+              style: "1",
+              locale: "en",
+              toolbar_bg: "#f1f3f6",
+              enable_publishing: false,
+              hide_side_toolbar: false,
+              allow_symbol_change: true,
+              container_id: "tv-chart-main",
+              // Remove saving reference to prevent conflicts
+            });
+          }
+          injectNews(tvSymbol); // Use TV-friendly symbol
+
+          // Render Prediction
+          const isUp = data.prediction === "UP";
+          val.innerText = isUp ? "STRONG BUY" : "SELL / SHORT";
+          val.style.color = isUp ? "var(--success)" : "var(--danger)";
+          val.style.textShadow = isUp ? "0 0 20px rgba(63, 185, 80, 0.5)" : "0 0 20px rgba(248, 81, 73, 0.5)";
+
+          meta.innerText = `Target: ${data.symbol} | Price: $${data.price}`;
+          let confVal = data.confidence * 100;
+          if (confVal > 99.9) confVal = 99.9;
+          prob.innerText = confVal.toFixed(2) + "%";
+
+          // Fetch Custom News (Use Backend Symbol - More reliable for data)
+          fetch(`http://127.0.0.1:8000/news?symbol=${trueSymbol}`)
+            .then(r => r.json())
+            .then(news => {
+              const movers = document.getElementById("movers-container");
+              // Check if we have backend news
+              if (news && news.length > 0 && movers) {
+                movers.innerHTML = `<div style="padding:10px;overflow-y:auto;height:100%">
+                ${news.slice(0, 10).map(n => `
+                    <div style="margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:8px">
+                        <a href="${n.link}" target="_blank" style="color:#e6edf3;text-decoration:none;font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;line-height:1.4">${n.title}</a>
+                        <div style="font-size:0.7rem;color:#8b949e;margin-top:4px;display:flex;justify-content:space-between">
+                            <span>${n.publisher}</span>
+                            <span>${new Date(n.providerPublishTime * 1000).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                `).join('')}
+                </div>`;
+                if (movers.previousElementSibling) movers.previousElementSibling.innerText = `LATEST: ${trueSymbol}`;
+              } else {
+                // Fallback if no backend news (indices often have no direct news in this feed)
+                initMovers();
+                if (movers.previousElementSibling) movers.previousElementSibling.innerText = `MARKET MOVERS`;
+              }
+            })
+            .catch(e => console.log(e));
+        })
+        .catch(e => {
+          console.error(e);
+          if (val) {
+            val.innerText = e.message === "Symbol Not Found" ? "INVALID SYMBOL" : "OFFLINE";
+            val.style.color = "var(--warning)";
+            val.style.textShadow = "none";
+            meta.innerText = e.message === "Symbol Not Found" ? "Try: MSFT, AAPL, RELIANCE.NS" : "Backend Connection Failed";
+            prob.innerText = "ERR";
+          }
+
+          // Restore Movers if failed
+          initMovers();
+        });
+    }
+
+    /* ===== LEDGER LOGIC ===== */
+    function renderLedger() {
+      const body = document.getElementById("assetTable");
+      if (!body) return;
+      body.innerHTML = "";
+      myAssets.forEach((asset, index) => {
+        const price = (Math.random() * 500 + 100).toFixed(2);
+        const change = (Math.random() * 4 - 2).toFixed(2);
+        const isPos = change >= 0;
+        body.innerHTML += `
       <tr class="ledger-row">
         <td onclick="viewSymbol('${asset}')" style="cursor:pointer;color:var(--accent-glow);font-weight:bold">${asset}</td>
         <td style="font-size: 0.7rem; color: var(--text-secondary)">TRACKING</td>
         <td style="font-family:'JetBrains Mono'">$${price}</td>
-        <td style="color:${isPos?'var(--success)':'var(--danger)'}; font-family:'JetBrains Mono'">${isPos?'+':''}${change}%</td>
+        <td style="color:${isPos ? 'var(--success)' : 'var(--danger)'}; font-family:'JetBrains Mono'">${isPos ? '+' : ''}${change}%</td>
         <td><button onclick="removeAsset(${index})" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:4px 8px;font-size:.65rem;border-radius:4px;cursor:pointer">REMOVE</button></td>
       </tr>`;
-  });
-  localStorage.setItem("stockai_ledger", JSON.stringify(myAssets));
-}
+      });
+      localStorage.setItem("stockai_ledger", JSON.stringify(myAssets));
+    }
 
-function addAsset(){
-  const val=document.getElementById("assetInput").value.toUpperCase().trim();
-  if(val && !myAssets.includes(val)){
-    myAssets.push(val);
-    renderLedger();
-    document.getElementById("assetInput").value="";
-  }
-}
+    function addAsset() {
+      const val = document.getElementById("assetInput").value.toUpperCase().trim();
+      if (val && !myAssets.includes(val)) {
+        myAssets.push(val);
+        renderLedger();
+        document.getElementById("assetInput").value = "";
+      }
+    }
 
-function removeAsset(index){
-  myAssets.splice(index,1);
-  renderLedger();
-}
+    function removeAsset(index) {
+      myAssets.splice(index, 1);
+      renderLedger();
+    }
 
-function viewSymbol(symbol){
-  document.getElementById("stockSearch").value=symbol;
-  switchTab("market");
-  updateView();
-}
+    function viewSymbol(symbol) {
+      document.getElementById("stockSearch").value = symbol;
+      switchTab("market");
+      updateView();
+    }
 
-/* ===== INITIALIZATION ===== */
-window.onload = () => {
-    initTicker();
-    initMovers();
-    renderLedger();
-    updateView();
-};
-</script>
+    /* ===== INITIALIZATION ===== */
+    window.onload = () => {
+      checkSession();
+
+      // Add Enter Key Listener
+      document.getElementById("stockSearch").addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          updateView();
+        }
+      });
+    };
+  </script>
 
 </body>
+
 </html>
