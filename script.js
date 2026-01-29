@@ -14,12 +14,14 @@ function checkSession() {
 
   if (isAuth) {
     if (loginScreen) loginScreen.style.display = "none";
-    if (dashboard) dashboard.style.display = "grid";
+    if (dashboard) dashboard.style.display = "contents"; // Match new structure
     setTimeout(() => {
       initTicker();
       initMovers();
       renderLedger();
       updateView();
+      addLog("SYSTEM_CORTEX_REINITIALIZED");
+      addLog("SECURE_TUNNEL_ESTABLISHED");
     }, 100);
   } else {
     if (loginScreen) loginScreen.style.display = "flex";
@@ -27,39 +29,32 @@ function checkSession() {
   }
 }
 
+/* ===== NEURAL LOG SYSTEM ===== */
+function addLog(msg) {
+  const log = document.getElementById("neural-log");
+  if (!log) return;
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+  entry.innerHTML = `<span class="log-timestamp">[${time}]</span> ${msg}...`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+  if (log.children.length > 50) log.removeChild(log.firstChild);
+}
+
 function handleLogin() {
   const btn = document.querySelector('#login-screen button');
-  if (btn) btn.innerHTML = "VERIFYING...";
+  if (btn) btn.innerHTML = "VERIFYING_CREDENTIALS...";
 
   setTimeout(() => {
     localStorage.setItem("institutional_auth", "true");
     location.reload();
-  }, 800);
+  }, 1200);
 }
 
 function handleLogout() {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-    display: flex; justify-content: center; align-items: center; z-index: 10000;
-    opacity: 0; transition: opacity 0.5s ease;
-  `;
-  overlay.innerHTML = `
-    <div style="text-align:center; color:white; font-family:'Plus Jakarta Sans'">
-        <div style="font-size:3rem; margin-bottom:20px">🔒</div>
-        <h2 style="margin:0">Secure Session Terminated</h2>
-        <p style="color:#888">Clearing Encrypted Cache...</p>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  setTimeout(() => overlay.style.opacity = '1', 10);
-
-  setTimeout(() => {
-    localStorage.removeItem("institutional_auth");
-    location.reload();
-  }, 2000);
+  localStorage.removeItem("institutional_auth");
+  location.reload();
 }
 
 /* ===== TAB SWITCH ===== */
@@ -71,30 +66,23 @@ function switchTab(tab) {
   if (viewMarket) viewMarket.classList.toggle("hidden", !isMarket);
   if (viewPortfolio) viewPortfolio.classList.toggle("hidden", isMarket);
 
-  if (isMarket && viewMarket) viewMarket.classList.add("view-fade");
-  else if (!isMarket && viewPortfolio) viewPortfolio.classList.add("view-fade");
-
   const desktopMarket = document.getElementById("nav-market-desktop");
   const desktopPortfolio = document.getElementById("nav-portfolio-desktop");
-  const mobileMarket = document.getElementById("nav-market-mobile");
-  const mobilePortfolio = document.getElementById("nav-portfolio-mobile");
 
   if (desktopMarket) desktopMarket.classList.toggle("active", isMarket);
   if (desktopPortfolio) desktopPortfolio.classList.toggle("active", !isMarket);
-  if (mobileMarket) mobileMarket.classList.toggle("active", isMarket);
-  if (mobilePortfolio) mobilePortfolio.classList.toggle("active", !isMarket);
 
-  const headerTitle = document.getElementById("header-title");
-  if (headerTitle) headerTitle.innerText = isMarket ? "Market Intelligence" : "Asset Ledger";
+  addLog(`SWITCHING_TO_TAB: ${tab.toUpperCase()}`);
 }
 
 /* ===== BACKEND WAKE-UP ===== */
 async function wakeBackend() {
-  const statusIcon = document.getElementById("backend-status-icon");
-  const statusText = document.getElementById("backend-status-text");
+  const icon = document.getElementById("backend-status-icon");
+  const text = document.getElementById("backend-status-text");
 
   try {
-    if (statusText) statusText.innerText = "WAKING NODES...";
+    addLog("PINGING_NEURAL_NODE_SERVICE");
+    if (text) text.innerText = "WAKING_NODES...";
     const start = Date.now();
     const res = await fetch("https://stock-prediction-3-ohd2.onrender.com/");
     const latency = Date.now() - start;
@@ -152,6 +140,27 @@ function initMovers() {
   container.appendChild(script);
 }
 
+/* ===== NEWS WIRE FALLBACK ===== */
+function injectNews(symbol) {
+  const container = document.getElementById("news-container");
+  if (!container) return;
+  container.innerHTML = "";
+  const script = document.createElement("script");
+  script.src = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    feedMode: "symbol",
+    symbol: symbol,
+    colorTheme: "dark",
+    isTransparent: true,
+    displayMode: "regular",
+    width: "100%",
+    height: "100%",
+    locale: "en"
+  });
+  container.appendChild(script);
+}
+
 /* ===== ROBUST FETCH HELPER ===== */
 async function robustFetch(url, options = {}, retries = 3, backoff = 1000) {
   try {
@@ -184,37 +193,35 @@ async function updateView() {
   }
 
   isFetching = true;
+  addLog(`INITIALIZING_ANALYSIS: ${ticker}`);
 
   const val = document.getElementById("predictVal");
   const meta = document.getElementById("predictMeta");
   const chart = document.getElementById("tv-chart-main");
-  const movers = document.getElementById("movers-container");
 
   if (val) {
-    val.innerHTML = '<span class="pulse-live"></span> ANALYZING...';
-    meta.innerText = "Synchronizing with Institutional Nodes...";
+    val.innerHTML = "ANALYZING...";
+    val.style.color = "var(--text-dim)";
+    meta.innerText = "Handshaking with Neural Cluster...";
   }
 
-  if (chart) chart.innerHTML = '<div class="skeleton" style="height:100%;width:100%"></div>';
-  if (movers) movers.innerHTML = '<div class="skeleton" style="height:100%;width:100%;padding:20px"></div>';
-  
-  const newsWire = document.getElementById("news-container");
-  if (newsWire) newsWire.innerHTML = '<div class="skeleton" style="height:400px;width:100%;margin:20px"></div>';
-
   try {
+    addLog("FETCHING_PREDICTION_WEIGHTS");
     const [data, news] = await Promise.all([
       robustFetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`)
-        .catch(e => { console.error("Predict Fail:", e); return { error: true, message: e.message }; }),
+        .catch(e => { addLog("PREDICT_NODE_ERROR"); return { error: true, message: e.message }; }),
       robustFetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
-        .catch(e => { console.error("News Fail:", e); return []; })
+        .catch(e => { addLog("NEWS_WIRE_LATENCY"); return []; })
     ]);
 
     if (data.error) throw new Error(data.message || "Predict Failed");
 
+    addLog("INFERENCE_SUCCESSFUL");
     data.news = news;
     _CACHE.set(ticker, data);
     renderWithData(data);
   } catch (e) {
+    addLog(`FATAL_EXCEPTION: ${e.message}`);
     handleUpdateError(e);
   } finally {
     isFetching = false;
@@ -232,7 +239,28 @@ function renderWithData(data, isCached = false) {
   const tvSymbol = data.tv_symbol || trueSymbol;
   currentTicker = trueSymbol;
 
-  if (terminalSymbol) terminalSymbol.innerText = `CORE_ID: ${trueSymbol}`;
+  if (terminalSymbol) terminalSymbol.innerText = `NASDAQ:${trueSymbol}`;
+
+  // Update AI Signal & Meta
+  if (val) {
+    const isBull = data.prediction === "UP" || data.prediction === "Bullish";
+    val.innerText = isBull ? "STRONG_BUY" : "LIQUIDATE / SHORT";
+    val.style.color = isBull ? "var(--success)" : "var(--danger)";
+    val.style.textShadow = `0 0 25px ${isBull ? "rgba(0, 255, 136, 0.4)" : "rgba(255, 59, 48, 0.4)"}`;
+    
+    if (meta) {
+      meta.innerText = `${trueSymbol} // ${data.reason || "Neural inference suggests clear trend trajectory."}`;
+      meta.style.color = "var(--text-main)";
+    }
+  }
+
+  // Update Confidence Bar
+  if (prob) {
+    let conf = (data.probability || data.confidence * 100).toFixed(1);
+    prob.innerText = `${conf}%`;
+    const bar = document.getElementById("confidence-bar");
+    if (bar) bar.style.width = `${conf}%`;
+  }
 
   // Update Chart
   if (chartContainer && !isCached) {
@@ -245,96 +273,81 @@ function renderWithData(data, isCached = false) {
       style: "1",
       locale: "en",
       toolbar_bg: "#f1f3f6",
+      enable_publishing: false,
+      hide_side_toolbar: false,
+      allow_symbol_change: true,
       container_id: "tv-chart-main",
     });
   }
 
-  // Update News Wire (COL 3)
+  // Update News Wire
   const newsWire = document.getElementById("news-container");
   if (newsWire) {
     if (data.news && data.news.length > 0) {
-      newsWire.innerHTML = `<div style="padding:15px;overflow-y:auto;">
-        ${data.news.slice(0, 15).map(n => `
-          <div style="margin-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:15px">
-              <a href="${n.link}" target="_blank" style="color:var(--text-primary);text-decoration:none;font-size:0.9rem;font-weight:700;display:block;margin-bottom:8px;line-height:1.4;transition:color 0.2s" onmouseover="this.style.color='var(--accent-glow)'" onmouseout="this.style.color='var(--text-primary)'">${n.title}</a>
-              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:8px;display:flex;justify-content:space-between;font-family:'JetBrains Mono'">
-                  <span style="color:var(--accent-soft);font-weight:bold">${n.publisher}</span>
-                  <span>${new Date(n.providerPublishTime * 1000).toLocaleDateString()}</span>
-              </div>
+      newsWire.innerHTML = data.news.slice(0, 10).map(n => `
+        <div class="news-item" onclick="window.open('${n.link}', '_blank')">
+          <div class="news-title">${n.title}</div>
+          <div class="news-meta">
+            <span style="color:var(--accent-primary)">${n.publisher}</span>
+            <span>${new Date(n.providerPublishTime * 1000).toLocaleTimeString()}</span>
           </div>
-        `).join('')}
-      </div>`;
+        </div>
+      `).join('');
     } else {
-      // Fallback to TradingView News Timeline if yFinance news is empty
       const tvSym = data.tv_symbol || data.symbol;
       injectNews(tvSym);
     }
   }
 
   initMovers();
-
-  // Update AI Signal
-  const isUp = data.prediction === "UP";
-  if (val) {
-      val.innerText = isUp ? "STRONG BUY" : "SELL / SHORT";
-      val.style.color = isUp ? "var(--success)" : "var(--danger)";
-      val.style.fontSize = "1.8rem";
-      val.style.fontWeight = "900";
-      val.style.textShadow = isUp ? "0 0 25px rgba(63, 185, 80, 0.4)" : "0 0 25px rgba(248, 81, 73, 0.4)";
-  }
-
-  const signalCard = document.getElementById("card-signal");
-  if (window.innerWidth < 900 && signalCard) {
-    signalCard.style.borderColor = isUp ? "var(--success)" : "var(--danger)";
-    signalCard.style.boxShadow = isUp ? "0 0 30px rgba(63, 185, 80, 0.2)" : "0 0 30px rgba(248, 81, 73, 0.2)";
-  }
-
-  if (meta) meta.innerText = `${data.symbol} | $${data.price}`;
-  if (prob) {
-      let confVal = data.confidence * 100;
-      if (confVal > 99.9) confVal = 99.9;
-      prob.innerText = confVal.toFixed(2) + "%";
-  }
+  addLog(`UI_RENDER_COMPLETE: ${trueSymbol}`);
 }
 
 function handleUpdateError(e) {
   const val = document.getElementById("predictVal");
   const meta = document.getElementById("predictMeta");
-  const prob = document.getElementById("ai-prob");
-  console.error(e);
+  addLog(`NODE_FAILURE: ${e.message}`);
   if (val) {
-    val.innerText = e.message === "Symbol Not Found" ? "INVALID SYMBOL" : "OFFLINE";
-    val.style.color = "var(--warning)";
-    if (meta) meta.innerText = e.message === "Symbol Not Found" ? "Try: MSFT, AAPL, BTCUSD" : "Backend Connection Failed";
-    if (prob) prob.innerText = "ERR";
+    val.innerText = "ACCESS_DENIED";
+    val.style.color = "var(--danger)";
+    if (meta) meta.innerText = "Check ticker core ID or network tunnel.";
   }
-  initMovers();
 }
 
 /* ===== LEDGER LOGIC ===== */
 function renderLedger() {
   const container = document.getElementById("assetTable");
   if (!container) return;
-  container.innerHTML = "";
+  container.innerHTML = `
+    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 120px; padding: 12px 16px; color: var(--text-dim); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid var(--glass-border)">
+      <div>Security</div>
+      <div>Status</div>
+      <div>Price</div>
+      <div>Delta</div>
+      <div>Action</div>
+    </div>
+  `;
 
   myAssets.forEach((asset, index) => {
     const price = (Math.random() * 500 + 100).toFixed(2);
     const change = (Math.random() * 4 - 2).toFixed(2);
     const isPos = change >= 0;
 
-    container.innerHTML += `
-      <div class="ledger-row-div">
-        <div class="cell-security" onclick="viewSymbol('${asset}')" style="cursor:pointer;color:var(--accent-glow);font-weight:800;font-size:1.1rem">${asset}</div>
-        <div class="cell-status" style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center;">
-          <span class="pulse-live" style="width:6px; height:6px; margin-right:5px"></span> ACTIVE
-        </div>
-        <div class="cell-price" style="font-family:'JetBrains Mono'">$${price}</div>
-        <div class="cell-change" style="color:${isPos ? 'var(--success)' : 'var(--danger)'}; font-family:'JetBrains Mono'">${isPos ? '+' : ''}${change}%</div>
-        <div class="cell-action">
-          <button onclick="removeAsset(${index})" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:6px 12px;font-size:.7rem;border-radius:8px;cursor:pointer;transition:all 0.2s">REMOVE</button>
-        </div>
+    const row = document.createElement("div");
+    row.style.cssText = "display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 120px; padding: 16px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s;";
+    row.onmouseover = () => row.style.background = "rgba(255,255,255,0.02)";
+    row.onmouseout = () => row.style.background = "transparent";
+    
+    row.innerHTML = `
+      <div onclick="viewSymbol('${asset}')" style="cursor:pointer; color:var(--accent-primary); font-weight:700; font-family:'JetBrains Mono'">${asset}</div>
+      <div style="font-size:0.6rem; color:var(--success)"><span class="pulse-amber" style="width:4px; height:4px; border-radius:50%; background:var(--success); display:inline-block; margin-right:6px"></span>LINKED</div>
+      <div style="font-family:'JetBrains Mono'; font-size:0.85rem">$${price}</div>
+      <div style="color:${isPos ? 'var(--success)' : 'var(--danger)'}; font-family:'JetBrains Mono'; font-size:0.85rem">${isPos ? '+' : ''}${change}%</div>
+      <div>
+        <button onclick="removeAsset(${index})" style="background:none; border:1px solid rgba(255,59,48,0.3); color:var(--danger); padding:4px 12px; border-radius:4px; font-size:0.6rem; cursor:pointer;">PURGE</button>
       </div>
     `;
+    container.appendChild(row);
   });
   localStorage.setItem("stockai_ledger", JSON.stringify(myAssets));
 }
@@ -347,12 +360,15 @@ function addAsset() {
     myAssets.push(val);
     renderLedger();
     input.value = "";
+    addLog(`LEDGER_MODIFIED: ADD_${val}`);
   }
 }
 
 function removeAsset(index) {
+  const removed = myAssets[index];
   myAssets.splice(index, 1);
   renderLedger();
+  addLog(`LEDGER_MODIFIED: PURGE_${removed}`);
 }
 
 function viewSymbol(symbol) {
@@ -365,12 +381,11 @@ function viewSymbol(symbol) {
 /* ===== INITIALIZATION ===== */
 window.onload = () => {
   checkSession();
-
   const search = document.getElementById("stockSearch");
   if (search) {
-    search.addEventListener("keypress", function (event) {
-      if (event.key === "Enter") {
-        event.preventDefault();
+    search.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
         updateView();
       }
     });
