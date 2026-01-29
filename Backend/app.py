@@ -6,8 +6,10 @@ import pandas as pd
 import requests
 import time
 
+import os
+
 # ================= FINNHUB =================
-FINNHUB_KEY = "d5ijfj9r01qo1lb2eti0d5ijfj9r01qo1lb2etig"
+FINNHUB_KEY = os.getenv("FINNHUB_KEY", "d5ijfj9r01qo1lb2eti0d5ijfj9r01qo1lb2etig")
 
 app = FastAPI(title="Stock AI Backend", version="1.0")
 

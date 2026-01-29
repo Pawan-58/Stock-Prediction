@@ -605,7 +605,7 @@
       if (movers) movers.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#444">Scanning Global Wires...</div>';
 
       // FETCH PREDICTION FIRST (Validates Symbol)
-      fetch(`http://127.0.0.1:8000/predict?symbol=${ticker}`)
+      fetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`)
         .then(response => {
           if (response.status === 404) throw new Error("Symbol Not Found");
           if (!response.ok) throw new Error("Prediction Unavailable");
@@ -652,7 +652,7 @@
           prob.innerText = confVal.toFixed(2) + "%";
 
           // Fetch Custom News (Use Backend Symbol - More reliable for data)
-          fetch(`http://127.0.0.1:8000/news?symbol=${trueSymbol}`)
+          fetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${trueSymbol}`)
             .then(r => r.json())
             .then(news => {
               const movers = document.getElementById("movers-container");
