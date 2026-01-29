@@ -1,9 +1,11 @@
+import httpx
+import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from predict import predict_stock
 import yfinance as yf
 import pandas as pd
-import requests
+import requests # Still needed for some yf sync wrappers if any, but moving main calls
 import time
 
 import os
@@ -13,6 +15,13 @@ from datetime import datetime
 FINNHUB_KEY = os.getenv("FINNHUB_KEY", "d5ijfj9r01qo1lb2eti0d5ijfj9r01qo1lb2etig")
 
 app = FastAPI(title="Stock AI Backend", version="1.0")
+
+# Global async client for connection pooling
+client = httpx.AsyncClient()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await client.aclose()
 
 # ------------------ CORS ------------------
 app.add_middleware(
@@ -32,19 +41,21 @@ TOP_INDIAN_STOCKS = [
 
 # ------------------ Health ------------------
 @app.get("/")
-def home():
+async def home():
     return {
         "status": "Backend running",
         "service": "AI Stock Predictor",
-        "version": "1.0"
+        "version": "1.0",
+        "engine": "Async/Httpx"
     }
 
 # =================== FINNHUB LIVE PRICE ===================
 @app.get("/live-price")
-def live_price(symbol: str):
+async def live_price(symbol: str):
     try:
         url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={FINNHUB_KEY}"
-        data = requests.get(url).json()
+        resp = await client.get(url)
+        data = resp.json()
 
         return {
             "symbol": symbol,
@@ -59,13 +70,14 @@ def live_price(symbol: str):
 
 # =================== FINNHUB LIVE CHART ===================
 @app.get("/live-chart")
-def live_chart(symbol: str):
+async def live_chart(symbol: str):
     try:
         now = int(time.time())
         past = now - 60*60*24
 
         url = f"https://finnhub.io/api/v1/stock/candle?symbol={symbol}&resolution=5&from={past}&to={now}&token={FINNHUB_KEY}"
-        data = requests.get(url).json()
+        resp = await client.get(url)
+        data = resp.json()
 
         if data.get("s") != "ok":
             raise HTTPException(status_code=404, detail="No chart data")
@@ -80,9 +92,10 @@ def live_chart(symbol: str):
 
 # =================== TOP GAINERS (yfinance preserved) ===================
 @app.get("/top-gainers")
-def get_top_gainers():
+async def get_top_gainers():
     try:
-        data = yf.download(TOP_INDIAN_STOCKS, period="2d", interval="1d", progress=False)
+        # yfinance is blocking, run in thread
+        data = await asyncio.to_thread(yf.download, TOP_INDIAN_STOCKS, period="2d", interval="1d", progress=False)
 
         if data.empty:
             raise HTTPException(status_code=404, detail="Could not fetch gainer data")
@@ -115,143 +128,98 @@ def get_top_gainers():
 
 # =================== AI PREDICTION ===================
 @app.get("/predict")
-def predict(symbol: str = "AAPL"):
+async def predict(symbol: str = "AAPL"):
     try:
         # 1. Clean the input symbol
-        # Remove common prefixes from TradingView/Frontend
         cleaned_symbol = symbol.upper().strip()
         
-        # Handle prefixes
         if cleaned_symbol.startswith("NASDAQ:"): cleaned_symbol = cleaned_symbol.replace("NASDAQ:", "")
         elif cleaned_symbol.startswith("NYSE:"): cleaned_symbol = cleaned_symbol.replace("NYSE:", "")
         elif cleaned_symbol.startswith("AMEX:"): cleaned_symbol = cleaned_symbol.replace("AMEX:", "")
         elif cleaned_symbol.startswith("BITSTAMP:"): cleaned_symbol = cleaned_symbol.replace("BITSTAMP:", "")
         elif cleaned_symbol.startswith("NSE:"): cleaned_symbol = cleaned_symbol.replace("NSE:", "") + ".NS"
         
-        # Mapping common names to tickers (Enhanced)
         common_map = {
-            "MICROSOFT": "MSFT",
-            "GOOG": "GOOGL",
-            "GOOGLE": "GOOGL",
-            "ALPHABET": "GOOGL",
-            "AMAZON": "AMZN",
-            "TESLA": "TSLA",
-            "APPLE": "AAPL",
-            "BITCOIN": "BTC-USD",
-            "NVIDIA": "NVDA",
-            "META": "META",
-            "FACEBOOK": "META",
-            "NETFLIX": "NFLX",
-            # Indices
-            "VIX": "^VIX",
-            "SPX": "^GSPC",
-            "S&P500": "^GSPC",
-            "DOW": "^DJI",
-            "DJIA": "^DJI",
-            "NASDAQ": "^IXIC",
-            # Commodities
-            "GOLD": "GC=F",
-            "SILVER": "SI=F",
-            "CRUDE OIL": "CL=F",
-            "OIL": "CL=F"
+            "MICROSOFT": "MSFT", "GOOG": "GOOGL", "GOOGLE": "GOOGL", "ALPHABET": "GOOGL",
+            "AMAZON": "AMZN", "TESLA": "TSLA", "APPLE": "AAPL", "BITCOIN": "BTC-USD",
+            "NVIDIA": "NVDA", "META": "META", "FACEBOOK": "META", "NETFLIX": "NFLX",
+            "VIX": "^VIX", "SPX": "^GSPC", "S&P500": "^GSPC", "DOW": "^DJI",
+            "DJIA": "^DJI", "NASDAQ": "^IXIC", "GOLD": "GC=F", "SILVER": "SI=F",
+            "CRUDE OIL": "CL=F", "OIL": "CL=F"
         }
         
         if cleaned_symbol in common_map:
             cleaned_symbol = common_map[cleaned_symbol]
 
-        # Final check for .NS duplication
         if ".NS.NS" in cleaned_symbol:
             cleaned_symbol = cleaned_symbol.replace(".NS.NS", ".NS")
 
-        print(f"!!!!Predicting for {cleaned_symbol} (Original: {symbol})")
-        result = predict_stock(cleaned_symbol)
+        print(f"!!!!Predicting for {cleaned_symbol}")
+        # predict_stock is blocking (CPU bound), run in thread
+        result = await asyncio.to_thread(predict_stock, cleaned_symbol)
 
         if result is None:
-            # Fallback: Try appending .NS if the user might have meant an Indian stock
             if "." not in cleaned_symbol and len(cleaned_symbol) >= 3 and not cleaned_symbol.startswith("^") and "=" not in cleaned_symbol:
-                 print(f"Retrying with .NS for {cleaned_symbol}")
-                 result = predict_stock(cleaned_symbol + ".NS")
+                 result = await asyncio.to_thread(predict_stock, cleaned_symbol + ".NS")
             
             if result is None:
-                raise HTTPException(status_code=404, detail=f"Symbol {cleaned_symbol} not found or no data")
+                raise HTTPException(status_code=404, detail=f"Symbol {cleaned_symbol} not found")
 
-        # Add TradingView Symbol mapping for better widget compatibility
         tv_symbol = result['symbol']
         if result['symbol'] == "GC=F": tv_symbol = "TVC:GOLD"
         elif result['symbol'] == "SI=F": tv_symbol = "TVC:SILVER"
         elif result['symbol'] == "CL=F": tv_symbol = "TVC:USOIL"
-        elif result['symbol'] == "^VIX": tv_symbol = "CBOE:VIX" # More robust for news
+        elif result['symbol'] == "^VIX": tv_symbol = "CBOE:VIX"
         elif result['symbol'] == "^GSPC": tv_symbol = "FOREXCOM:SPXUSD"
         elif result['symbol'] == "^DJI": tv_symbol = "FOREXCOM:DJI"
         elif result['symbol'] == "^IXIC": tv_symbol = "NASDAQ:NDX"
-        # Common Tech Stocks Prefixes
         elif result['symbol'] in ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX"]:
             tv_symbol = f"NASDAQ:{result['symbol']}"
         elif result['symbol'] == "GOOG": tv_symbol = "NASDAQ:GOOG"
-        elif result['symbol'] == "TSLA": tv_symbol = "NASDAQ:TSLA"
-        elif result['symbol'] == "RELIANCE.NS": tv_symbol = "NSE:RELIANCE"
-        elif result['symbol'] == "^BSESN": tv_symbol = "BSE:SENSEX"
-        elif result['symbol'] == "^NSEI": tv_symbol = "NSE:NIFTY"
         elif result['symbol'].endswith(".NS"):
             tv_symbol = f"NSE:{result['symbol'].replace('.NS', '')}"
         
         result['tv_symbol'] = tv_symbol
         return result
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        print(f"Error in predict: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException as he: raise he
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
 # =================== NEWS ENDPOINT ===================
 @app.get("/news")
-def get_news(symbol: str = "AAPL"):
+async def get_news(symbol: str = "AAPL"):
     try:
-        # Clean symbol logic (reuse or copy-paste safe logic)
         search_symbol = symbol.upper().strip()
         if search_symbol.startswith("NASDAQ:"): search_symbol = search_symbol.replace("NASDAQ:", "")
         elif search_symbol.startswith("NSE:"): search_symbol = search_symbol.replace("NSE:", "") + ".NS"
-        elif search_symbol == "GOOGLE": search_symbol = "GOOGL" # minimal map
         
         tick = yf.Ticker(search_symbol)
-        raw_news = tick.news
+        raw_news = await asyncio.to_thread(lambda: tick.news)
         
         formatted_news = []
         for item in raw_news:
-            # Check for new nested structure
             if 'content' in item:
                 c = item['content']
-                # Determine Link
                 link = "#"
-                if 'clickThroughUrl' in c and 'url' in c['clickThroughUrl']:
-                    link = c['clickThroughUrl']['url']
-                elif 'canonicalUrl' in c and 'url' in c['canonicalUrl']:
-                    link = c['canonicalUrl']['url']
+                if 'clickThroughUrl' in c and 'url' in c['clickThroughUrl']: link = c['clickThroughUrl']['url']
+                elif 'canonicalUrl' in c and 'url' in c['canonicalUrl']: link = c['canonicalUrl']['url']
                 
-                # Determine Time (ISO to Epoch)
                 pub_epoch = 0
                 if 'pubDate' in c:
                     try:
                         dt = datetime.strptime(c['pubDate'], "%Y-%m-%dT%H:%M:%SZ")
                         pub_epoch = int(dt.timestamp())
-                    except:
-                        pass
+                    except: pass
                 
                 formatted_news.append({
                     "title": c.get('title', 'No Title'),
                     "link": link,
                     "providerPublishTime": pub_epoch,
                     "publisher": c.get('provider', {}).get('displayName', 'Unknown'),
-                    "thumbnail": c.get('thumbnail', {}).get('url', '') # extra bonus
+                    "thumbnail": c.get('thumbnail', {}).get('url', '')
                 })
-            else:
-                # Old flat structure fallback
-                formatted_news.append(item)
-                
+            else: formatted_news.append(item)
         return formatted_news
-    except Exception as e:
-        print(f"Error fetching news: {e}")
-        return []
+    except Exception as e: return []
 
 
 
@@ -340,29 +308,22 @@ def load_or_fetch_data(
 
 # =================== MARKET (yfinance preserved) ===================
 @app.get("/market")
-def market(symbol: str = "AAPL"):
+async def market(symbol: str = "AAPL"):
     try:
         search_symbol = symbol.upper() if "." in symbol else f"{symbol.upper()}"
         search_symbol = search_symbol.replace(".NS", "")
-        # df = yf.download(search_symbol, period="1d", interval="5m", progress=False)
-        print("!!!!Fetching market data for", search_symbol)
-        period='2y'
-        interval='1d' 
-        
-        df = load_or_fetch_data(
-            search_symbol, period, interval, data_dir=CONFIG['data_dir'])
+        # Run blocking data fetch in thread
+        df = await asyncio.to_thread(load_or_fetch_data, search_symbol, '2y', '1d', data_dir=CONFIG['data_dir'])
 
         if df.empty:
             raise HTTPException(status_code=404, detail="No market data found")
 
         prices = df["Close"].dropna().values.flatten().tolist()
-
         change_pct = 0
         if len(prices) > 1:
             change_pct = ((prices[-1] - prices[0]) / prices[0]) * 100
 
         return {
-            # "symbol": symbol.upper(),
             "symbol": search_symbol,
             "last_price": round(prices[-1], 2),
             "change": round(change_pct, 2),

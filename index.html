@@ -187,11 +187,28 @@
     }
 
     /* ===== GRID & CARDS ===== */
-    .content-grid {
+    /* ===== GRID SYSTEM (ULTRA-ADVANCED) ===== */
+    .terminal-layout {
       display: grid;
-      grid-template-columns: 1fr 380px;
+      grid-template-columns: 320px 1fr 340px;
       gap: 20px;
       padding: 20px;
+      height: calc(100vh - var(--nav-height) - 40px);
+    }
+
+    .layout-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    .main-terminal {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
     }
 
     .glass-card {
@@ -238,12 +255,13 @@
     }
 
     #news-container {
-      height: 400px;
+      flex: 1;
       width: 100%;
+      min-height: 300px;
     }
 
     #movers-container {
-      height: 400px;
+      height: 350px;
       width: 100%;
     }
 
@@ -343,8 +361,26 @@
     }
 
     /* ===== MOBILE OVERRIDES ===== */
-    /* ===== MOBILE OVERRIDES (ADVANCED) ===== */
+    /* ===== MOBILE & TABLET OVERRIDES ===== */
+    @media (max-width: 1200px) {
+      .terminal-layout {
+        grid-template-columns: 300px 1fr;
+      }
+
+      .intel-col {
+        display: none;
+      }
+
+      /* Hide news on tablets by default or move it */
+    }
+
     @media (max-width: 900px) {
+      .terminal-layout {
+        display: block;
+        padding: 15px;
+        height: auto;
+      }
+
       .terminal-container {
         grid-template-columns: 1fr;
       }
@@ -393,27 +429,28 @@
         /* Space for floating nav */
       }
 
-      .content-grid {
-        display: grid;
-        grid-template-columns: 1fr;
+      .terminal-layout {
+        display: flex;
+        flex-direction: column;
         padding: 15px;
-        gap: 15px;
+        height: auto;
+        overflow-y: visible;
       }
 
-      .main-terminal,
-      .sidebar {
-        display: contents;
+      .layout-col,
+      .main-terminal {
+        width: 100%;
+        margin-bottom: 20px;
+        order: unset;
       }
 
       #card-chart {
         order: 1;
-        margin-top: 5px;
       }
 
       #card-signal {
         order: 2;
-        border: 1px solid rgba(47, 129, 247, 0.3);
-        background: radial-gradient(circle at top right, rgba(47, 129, 247, 0.1), transparent);
+        margin-top: 10px;
       }
 
       #card-news {
@@ -601,61 +638,64 @@
       </header>
 
       <div id="view-market">
-        <div class="content-grid">
+        <div class="terminal-layout">
 
-          <!-- MOBILE QUICK STATS -->
-          <div class="mobile-stats-banner">
-            <div
-              style="font-size: 0.6rem; color: var(--text-secondary); letter-spacing: 1px; font-weight: 800; margin-bottom: 5px;">
-              MARKET SENTIMENT</div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span id="mobile-sentiment"
-                style="font-size: 1.1rem; font-weight: 800; color: var(--accent-glow);">NEUTRAL</span>
-              <span id="mobile-vol"
-                style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: var(--text-secondary);">VOL: HIGH</span>
-            </div>
-          </div>
-
-          <div class="main-terminal">
-            <div class="glass-card" id="card-chart">
-              <div class="chart-container">
-                <div id="tv-chart-main"></div>
-              </div>
-            </div>
-
-            <div class="glass-card" id="card-news">
-              <div class="news-header">
-                <span>INSTITUTIONAL NEWS WIRE</span>
-                <span style="color:var(--accent-glow)"><span class="pulse-live"></span>LIVE</span>
-              </div>
-              <div id="news-container"></div>
-            </div>
-          </div>
-
-          <aside class="sidebar">
+          <!-- COL 1: INTELLIGENCE SIDEBAR -->
+          <aside class="layout-col">
             <div class="glass-card" id="card-signal">
               <div class="card-inner">
                 <div style="font-size:.65rem; color:var(--text-secondary); letter-spacing: 1px; font-weight:bold">NEURAL
                   CORE SIGNAL</div>
                 <div class="signal-box">
-                  <div id="predictVal" style="font-size:1.8rem; font-weight:900; color:var(--text-secondary)">STANDBY
+                  <div id="predictVal"
+                    style="font-size:1.5rem; font-weight:900; color:var(--text-secondary); text-align:center">STANDBY
                   </div>
-                  <div id="predictMeta" style="font-size:.7rem; color:var(--text-secondary); margin-top:5px">System
-                    Initialized...</div>
+                  <div id="predictMeta"
+                    style="font-size:.7rem; color:var(--text-secondary); margin-top:5px; text-align:center">Awaiting
+                    Data...</div>
                 </div>
-                <div style="font-size:.75rem; display:flex; justify-content: space-between;">
-                  <span>Neural Confidence:</span>
+                <div
+                  style="font-size:.75rem; display:flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                  <span>Confidence:</span>
                   <span id="ai-prob" style="font-family:'JetBrains Mono'; color:var(--accent-glow)">--</span>
                 </div>
               </div>
             </div>
 
-            <div class="glass-card" id="card-movers">
-              <div class="news-header">
-                <span>MARKET MOVERS</span>
-                <span style="color:var(--accent-glow)"><span class="pulse-live"></span>LIVE</span>
+            <div class="glass-card" id="card-movers" style="flex: 1; display: flex; flex-direction: column;">
+              <div class="card-inner" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="news-header">
+                  <span>MARKET MOVERS</span>
+                  <span class="pulse-live"></span>
+                </div>
+                <div id="movers-container" style="flex: 1; min-height: 200px;"></div>
               </div>
-              <div id="movers-container"></div>
+            </div>
+          </aside>
+
+          <!-- COL 2: TERMINAL CORE -->
+          <section class="main-terminal">
+            <div class="glass-card" id="card-chart" style="flex: 1; display: flex; flex-direction: column;">
+              <div class="card-inner" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="news-header" style="margin-bottom: 5px;">
+                  <span id="terminal-symbol">TERMINAL_v2.1</span>
+                  <span style="font-size: 0.6rem; color: var(--success)">LIVE_FEED</span>
+                </div>
+                <div id="tv-chart-main" class="chart-container" style="flex: 1; min-height: 300px;"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- COL 3: NEWS WIRE -->
+          <aside class="layout-col">
+            <div class="glass-card" id="card-news" style="height: 100%; display: flex; flex-direction: column;">
+              <div class="card-inner" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="news-header">
+                  <span>INSTITUTIONAL WIRE</span>
+                  <span class="pulse-live"></span>
+                </div>
+                <div id="news-container" style="flex: 1; overflow-y: auto;"></div>
+              </div>
             </div>
           </aside>
 
@@ -841,19 +881,33 @@
       container.appendChild(script);
     }
 
+    /* ===== ROBUST FETCH HELPER ===== */
+    async function robustFetch(url, options = {}, retries = 3, backoff = 1000) {
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        if (retries > 0) {
+          console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} left)`, error);
+          await new Promise(resolve => setTimeout(resolve, backoff));
+          return robustFetch(url, options, retries - 1, backoff * 2);
+        }
+        throw error;
+      }
+    }
+
     /* ===== CACHE & STATE ===== */
     const _CACHE = new Map();
     async function updateView() {
       const input = document.getElementById("stockSearch").value.toUpperCase().trim();
       const ticker = input || currentTicker;
 
-      // Check Cache
       if (_CACHE.has(ticker)) {
-        renderWithData(_CACHE.get(ticker));
+        renderWithData(_CACHE.get(ticker), true);
         return;
       }
 
-      // UI Reset
       const val = document.getElementById("predictVal");
       const meta = document.getElementById("predictMeta");
       const prob = document.getElementById("ai-prob");
@@ -862,45 +916,41 @@
 
       if (val) {
         val.innerHTML = '<span class="pulse-live"></span> ANALYZING...';
-        meta.innerText = "Synchronizing neural weights...";
+        meta.innerText = "Synchronizing with Institutional Nodes...";
       }
 
-      // Parallel Skeletons
       if (chart) chart.innerHTML = '<div class="skeleton" style="height:100%;width:100%"></div>';
       if (movers) movers.innerHTML = '<div class="skeleton" style="height:100%;width:100%;padding:20px"></div>';
 
       try {
-        // Parallel Fetching
-        const [predRes, newsRes] = await Promise.all([
-          fetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`),
-          fetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
+        const [data, news] = await Promise.all([
+          robustFetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`),
+          robustFetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
         ]);
 
-        if (!predRes.ok) throw new Error("Symbol Not Found");
-        const data = await predRes.json();
-        const news = await newsRes.json();
-
-        data.news = news; // Attach news to data packet
-        _CACHE.set(ticker, data); // Store in cache
-
+        data.news = news;
+        _CACHE.set(ticker, data);
         renderWithData(data);
       } catch (e) {
         handleUpdateError(e);
       }
     }
 
-    function renderWithData(data) {
+    function renderWithData(data, isCached = false) {
       const val = document.getElementById("predictVal");
       const meta = document.getElementById("predictMeta");
       const prob = document.getElementById("ai-prob");
       const chartContainer = document.getElementById("tv-chart-main");
+      const terminalSymbol = document.getElementById("terminal-symbol");
 
       const trueSymbol = data.symbol;
       const tvSymbol = data.tv_symbol || trueSymbol;
       currentTicker = trueSymbol;
 
-      // Update Chart
-      if (chartContainer) {
+      if (terminalSymbol) terminalSymbol.innerText = `CORE_ID: ${trueSymbol}`;
+
+      // Update Chart (Skip re-init if cached and same symbol to prevent flicker)
+      if (chartContainer && !isCached) {
         chartContainer.innerHTML = "";
         new TradingView.widget({
           autosize: true,
