@@ -109,8 +109,8 @@ def fine_tune_model(model, df, epochs=5):
         return model
 
 def predict_stock(symbol):
-    # Fetch 1 Year of data to allow for training context
-    df = yf.download(symbol, period="1y", interval="1d", progress=False) # Changed from 5d/1h to 1y/1d for better patterns
+    # Fetch 3 Months of data (Faster and sufficient for recent patterns)
+    df = yf.download(symbol, period="3mo", interval="1d", progress=False) 
     print(symbol)
     
     if df.empty:
