@@ -7,6 +7,7 @@ import requests
 import time
 
 import os
+from datetime import datetime
 
 # ================= FINNHUB =================
 FINNHUB_KEY = os.getenv("FINNHUB_KEY", "d5ijfj9r01qo1lb2eti0d5ijfj9r01qo1lb2etig")
