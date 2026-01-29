@@ -12,11 +12,13 @@
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
 
     :root {
+      /* Institutional Palette */
       --bg-ultra: #02040a;
       --sidebar-bg: #0d1117;
-      --card-bg: #161b22;
+      --card-bg: rgba(22, 27, 34, 0.7);
+      /* Glass-ready */
       --accent-glow: #2f81f7;
-      --accent-soft: rgba(47, 129, 247, 0.1);
+      --accent-soft: rgba(47, 129, 247, 0.15);
       --border-color: #30363d;
       --text-primary: #f0f6fc;
       --text-secondary: #8b949e;
@@ -24,6 +26,11 @@
       --danger: #f85149;
       --warning: #d29922;
       --nav-height: 70px;
+
+      /* New Premium Tokens */
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --neon-blue: #58a6ff;
+      --terminal-green: #3fb950;
     }
 
     * {
@@ -128,38 +135,55 @@
 
     .search-group {
       display: flex;
-      background: #010409;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 4px;
-      transition: border-color 0.3s;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 6px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
     }
 
     .search-group:focus-within {
       border-color: var(--accent-glow);
+      box-shadow: 0 0 20px rgba(47, 129, 247, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.5);
+      transform: translateY(-1px);
     }
 
     .search-group input {
       background: transparent;
       border: none;
       color: white;
-      padding: 8px 12px;
-      width: 180px;
+      padding: 8px 16px;
+      width: 220px;
       outline: none;
       font-family: 'JetBrains Mono';
-      font-size: .85rem;
+      font-size: .9rem;
+      letter-spacing: 0.5px;
     }
 
     .btn-analyze {
-      background: var(--accent-glow);
+      background: linear-gradient(135deg, var(--accent-glow), #1a56db);
       color: white;
       border: none;
-      border-radius: 6px;
-      padding: 8px 16px;
+      border-radius: 8px;
+      padding: 8px 20px;
       cursor: pointer;
-      font-weight: 800;
+      font-weight: 700;
       font-size: .75rem;
       text-transform: uppercase;
+      letter-spacing: 1.5px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(47, 129, 247, 0.3);
+    }
+
+    .btn-analyze:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(47, 129, 247, 0.5);
+      filter: brightness(1.1);
+    }
+
+    .btn-analyze:active {
+      transform: translateY(0);
     }
 
     /* ===== GRID & CARDS ===== */
@@ -172,14 +196,22 @@
 
     .glass-card {
       background: var(--card-bg);
-      border: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
       border-radius: 12px;
       overflow: hidden;
       margin-bottom: 15px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass-card:hover {
+      border-color: rgba(88, 166, 255, 0.4);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     }
 
     .card-inner {
-      padding: 15px;
+      padding: 20px;
     }
 
     /* ===== COMPONENTS ===== */
@@ -222,22 +254,46 @@
     /* ===== TABLE STYLING ===== */
     .ledger-table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0 8px;
       min-width: 600px;
     }
 
     .ledger-table th {
       text-align: left;
-      padding: 12px;
-      border-bottom: 1px solid var(--border-color);
+      padding: 15px;
       color: var(--text-secondary);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 800;
+    }
+
+    .ledger-table tr {
+      background: rgba(255, 255, 255, 0.02);
+      transition: all 0.2s ease;
+    }
+
+    .ledger-table tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+      transform: scale(1.002);
     }
 
     .ledger-table td {
-      padding: 12px;
-      border-bottom: 1px solid #1c2128;
-      font-size: 0.9rem;
+      padding: 15px;
+      font-size: 0.95rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .ledger-table td:first-child {
+      border-left: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 8px 0 0 8px;
+    }
+
+    .ledger-table td:last-child {
+      border-right: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 0 8px 8px 0;
     }
 
     /* ===== MOBILE OVERRIDES ===== */
@@ -312,10 +368,52 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 10px;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 8px;
-      margin: 10px 0;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      margin: 15px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .signal-box::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(47, 129, 247, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Live Pulse Animation */
+    @keyframes pulse-dot {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(47, 129, 247, 0.7);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(47, 129, 247, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(47, 129, 247, 0);
+      }
+    }
+
+    .pulse-live {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-glow);
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      animation: pulse-dot 2s infinite;
     }
 
     /* Custom Scrollbar */
@@ -388,7 +486,7 @@
             <div class="glass-card" id="card-news">
               <div class="news-header">
                 <span>INSTITUTIONAL NEWS WIRE</span>
-                <span style="color:var(--accent-glow)">● LIVE</span>
+                <span style="color:var(--accent-glow)"><span class="pulse-live"></span>LIVE</span>
               </div>
               <div id="news-container"></div>
             </div>
@@ -413,7 +511,10 @@
             </div>
 
             <div class="glass-card" id="card-movers">
-              <div class="news-header">MARKET MOVERS</div>
+              <div class="news-header">
+                <span>MARKET MOVERS</span>
+                <span style="color:var(--accent-glow)"><span class="pulse-live"></span>LIVE</span>
+              </div>
               <div id="movers-container"></div>
             </div>
           </aside>
@@ -609,9 +710,10 @@
 
       if (!val) return; // Guard clause if elements missing
 
-      val.innerText = "TRAINING NEURAL CORE...";
+      val.innerHTML = '<span class="pulse-live"></span> ANALYZING...';
       val.style.color = "var(--text-secondary)";
-      meta.innerText = "Fine-tuning weights on live data...";
+      val.style.fontSize = "1.2rem";
+      meta.innerText = "Synchronizing neural weights...";
       prob.innerText = "--";
 
       // Clear News temporarily
@@ -657,9 +759,11 @@
           const isUp = data.prediction === "UP";
           val.innerText = isUp ? "STRONG BUY" : "SELL / SHORT";
           val.style.color = isUp ? "var(--success)" : "var(--danger)";
-          val.style.textShadow = isUp ? "0 0 20px rgba(63, 185, 80, 0.5)" : "0 0 20px rgba(248, 81, 73, 0.5)";
+          val.style.fontSize = "1.8rem";
+          val.style.fontWeight = "900";
+          val.style.textShadow = isUp ? "0 0 25px rgba(63, 185, 80, 0.4)" : "0 0 25px rgba(248, 81, 73, 0.4)";
 
-          meta.innerText = `Target: ${data.symbol} | Price: $${data.price}`;
+          meta.innerText = `${data.symbol} | $${data.price}`;
           let confVal = data.confidence * 100;
           if (confVal > 99.9) confVal = 99.9;
           prob.innerText = confVal.toFixed(2) + "%";
