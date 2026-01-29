@@ -108,15 +108,32 @@ def fine_tune_model(model, df, epochs=5):
         print(f"Fine-tuning skipped: {e}")
         return model
 
+# In-memory data cache for prediction speed
+_PREDICT_DATA_CACHE = {}
+_CACHE_EXPIRY_SEC = 300 # 5 minutes
+
 def predict_stock(symbol):
-    # Fetch 3 Months of data (Faster and sufficient for recent patterns)
-    df = yf.download(symbol, period="3mo", interval="1d", progress=False) 
-    print(symbol)
-    
-    if df.empty:
-        # Try original granular fetch as fallback
-        df = yf.download(symbol, period="5d", interval="1h", progress=False)
+    # 1. Check in-memory cache
+    now = time.time()
+    if symbol in _PREDICT_DATA_CACHE:
+        df, ts = _PREDICT_DATA_CACHE[symbol]
+        if now - ts < _CACHE_EXPIRY_SEC:
+            print(f"Using in-memory cached data for {symbol}")
+        else:
+            df = None
+    else:
+        df = None
+
+    if df is None:
+        # Fetch 1 Month of data (Faster and sufficient for SMA20/RSI14)
+        df = yf.download(symbol, period="1mo", interval="1d", progress=False) 
+        if df.empty:
+            # Try original granular fetch as fallback
+            df = yf.download(symbol, period="5d", interval="1h", progress=False)
         
+        if not df.empty:
+            _PREDICT_DATA_CACHE[symbol] = (df, now)
+
     if df.empty or len(df) < WINDOW_SIZE + 2:
         return None
         

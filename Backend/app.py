@@ -27,6 +27,7 @@ async def shutdown_event():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -254,55 +255,60 @@ os.makedirs(CONFIG['data_dir'], exist_ok=True)
 # ==========================================
 # 2. DATA PREPARATION
 # ==========================================
+# Global In-memory cache for market data
+_DATA_CACHE = {}
+_MARKET_CACHE_EXPIRY = 600 # 10 minutes
+
 def load_or_fetch_data(
     ticker,
-    period="2y",
+    period="3mo", # Reduced from 2y for faster general charts
     interval="1d",
     max_age_days=1,
     data_dir="data"
 ):
     """
-    Loads data from cache if it exists and is recent; otherwise downloads it.
+    Loads data from in-memory cache first, then file cache, then downloads.
     """
+    now = time.time()
+    cache_key = f"{ticker}_{period}_{interval}"
+    
+    # 1. In-memory Check
+    if cache_key in _DATA_CACHE:
+        df, ts = _DATA_CACHE[cache_key]
+        if now - ts < _MARKET_CACHE_EXPIRY:
+            print(f"Using in-memory cache for {ticker}")
+            return df
+
     os.makedirs(data_dir, exist_ok=True)
     filename = f"{ticker}_{period}_{interval}.csv"
     filepath = os.path.join(data_dir, filename)
 
-    # 1. Check if file exists and is fresh
+    # 2. File Cache Check
     if os.path.exists(filepath):
         file_time = datetime.fromtimestamp(os.path.getmtime(filepath))
         is_fresh = (datetime.now() - file_time) < timedelta(days=max_age_days)
         
         if is_fresh:
-            print(f"Loading cached data for {ticker} (Last updated: {file_time})...")
             df = pd.read_csv(filepath, index_col=0, parse_dates=True)
-            
-            # Basic validation to ensure cache isn't empty
             if not df.empty:
+                _DATA_CACHE[cache_key] = (df, now)
                 return df
-            else:
-                print("Cached file was empty. Re-fetching...")
 
-    # 2. Fetch fresh data
-    print(f"Fetching fresh data for {ticker}...")
+    # 3. Fresh Fetch
     try:
         df = yf.download(ticker, period=period, interval=interval, progress=False)
-        
-        # 3. Validation: Check if data is empty (bad ticker or network error)
         if df.empty:
-            raise ValueError(f"No data found for {ticker}. Check ticker symbol or internet connection.")
+            raise ValueError(f"No data for {ticker}")
 
-        # 4. Clean MultiIndex columns if present (Fixes 'Close' vs ('Close', 'AAPL') issues)
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.droplevel(1)
 
-        # Save to cache
         df.to_csv(filepath)
+        _DATA_CACHE[cache_key] = (df, now)
         return df
 
     except Exception as e:
-        print(f"Error fetching data: {e}")
-        # Return empty DF or re-raise depending on preference
+        print(f"Fetch Error: {e}")
         raise e
     
 

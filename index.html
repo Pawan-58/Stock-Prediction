@@ -629,7 +629,17 @@
       <div class="ticker-header" id="ticker-container"></div>
 
       <header class="terminal-header">
-        <h2 id="header-title" style="margin:0; font-size: 1.1rem; font-weight: 800;">Market Intelligence</h2>
+        <div style="display:flex; align-items:center; gap:15px">
+          <h2 id="header-title" style="margin:0; font-size: 1.1rem; font-weight: 800;">Market Intelligence</h2>
+          <div id="backend-status-hud"
+            style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); padding:4px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.05)">
+            <span id="backend-status-icon" style="width:6px; height:6px; background:#8b949e; border-radius:50%"></span>
+            <span id="backend-status-text"
+              style="font-family:'JetBrains Mono'; font-size:0.55rem; color:#8b949e; letter-spacing:1px; text-transform:uppercase">checking...</span>
+            <button onclick="wakeBackend()"
+              style="background:none; border:none; color:var(--accent-glow); cursor:pointer; font-size:0.6rem; margin-left:5px; text-decoration:underline; font-family:'JetBrains Mono'">RETRY</button>
+          </div>
+        </div>
 
         <div class="search-group">
           <input id="stockSearch" placeholder="TICKER (eg: BTCUSD)">
@@ -818,8 +828,30 @@
       document.getElementById("header-title").innerText = isMarket ? "Market Intelligence" : "Asset Ledger";
     }
 
+    /* ===== BACKEND WAKE-UP ===== */
+    async function wakeBackend() {
+      const statusIcon = document.getElementById("backend-status-icon");
+      const statusText = document.getElementById("backend-status-text");
+
+      try {
+        if (statusText) statusText.innerText = "WAKING NODES...";
+        const start = Date.now();
+        const res = await fetch("https://stock-prediction-3-ohd2.onrender.com/");
+        const latency = Date.now() - start;
+
+        if (res.ok) {
+          if (statusIcon) statusIcon.style.background = "var(--success)";
+          if (statusText) statusText.innerText = `ONLINE (${latency}ms)`;
+        }
+      } catch (e) {
+        if (statusIcon) statusIcon.style.background = "var(--danger)";
+        if (statusText) statusText.innerText = "OFFLINE";
+      }
+    }
+
     /* ===== TICKER WIDGET ===== */
     function initTicker() {
+      wakeBackend(); // Proactive wake on init
       const script = document.createElement("script");
       script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
       script.async = true;
@@ -924,9 +956,13 @@
 
       try {
         const [data, news] = await Promise.all([
-          robustFetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`),
+          robustFetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`)
+            .catch(e => { console.error("Predict Fail:", e); return { error: true, message: e.message }; }),
           robustFetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
+            .catch(e => { console.error("News Fail:", e); return []; })
         ]);
+
+        if (data.error) throw new Error(data.message || "Predict Failed");
 
         data.news = news;
         _CACHE.set(ticker, data);
