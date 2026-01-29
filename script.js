@@ -4,7 +4,7 @@
  */
 
 // ================= CONFIG & STATE =================
-const BACKEND_URL = "http://127.0.0.1:8000";
+const BACKEND_URL = "https://stock-prediction-3-ohd2.onrender.com";
 
 const State = {
     currentSymbol: "AAPL",
