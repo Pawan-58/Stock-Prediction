@@ -259,9 +259,31 @@
       }
 
       .content-grid {
+        display: grid;
         grid-template-columns: 1fr;
         padding: 10px;
         gap: 10px;
+      }
+
+      .main-terminal,
+      .sidebar {
+        display: contents;
+      }
+
+      #card-chart {
+        order: 1;
+      }
+
+      #card-signal {
+        order: 2;
+      }
+
+      #card-news {
+        order: 3;
+      }
+
+      #card-movers {
+        order: 4;
       }
 
       .terminal-header {
@@ -278,14 +300,6 @@
       .chart-container {
         height: 45vh;
         border-radius: 0;
-      }
-
-      .sidebar {
-        order: 2;
-      }
-
-      .main-terminal {
-        order: 1;
       }
 
       .btn-analyze {
@@ -365,13 +379,13 @@
         <div class="content-grid">
 
           <div class="main-terminal">
-            <div class="glass-card">
+            <div class="glass-card" id="card-chart">
               <div class="chart-container">
                 <div id="tv-chart-main"></div>
               </div>
             </div>
 
-            <div class="glass-card">
+            <div class="glass-card" id="card-news">
               <div class="news-header">
                 <span>INSTITUTIONAL NEWS WIRE</span>
                 <span style="color:var(--accent-glow)">● LIVE</span>
@@ -381,7 +395,7 @@
           </div>
 
           <aside class="sidebar">
-            <div class="glass-card">
+            <div class="glass-card" id="card-signal">
               <div class="card-inner">
                 <div style="font-size:.65rem; color:var(--text-secondary); letter-spacing: 1px; font-weight:bold">NEURAL
                   CORE SIGNAL</div>
@@ -398,7 +412,7 @@
               </div>
             </div>
 
-            <div class="glass-card">
+            <div class="glass-card" id="card-movers">
               <div class="news-header">MARKET MOVERS</div>
               <div id="movers-container"></div>
             </div>
