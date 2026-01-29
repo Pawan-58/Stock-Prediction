@@ -618,9 +618,8 @@
           currentTicker = trueSymbol;
 
           // Update External Widgets with VALID symbol
-          const chartContainer = document.getElementById("tv-chart-main");
           if (chartContainer) {
-            // chartContainer.innerHTML = ""; // Already cleared above for fresh render feel
+            chartContainer.innerHTML = ""; // Clear existing for fresh render
 
             // Create Widget
             new TradingView.widget({

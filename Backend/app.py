@@ -187,6 +187,11 @@ def predict(symbol: str = "AAPL"):
         # Common Tech Stocks Prefixes
         elif result['symbol'] in ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX"]:
             tv_symbol = f"NASDAQ:{result['symbol']}"
+        elif result['symbol'] == "GOOG": tv_symbol = "NASDAQ:GOOG"
+        elif result['symbol'] == "TSLA": tv_symbol = "NASDAQ:TSLA"
+        elif result['symbol'] == "RELIANCE.NS": tv_symbol = "NSE:RELIANCE"
+        elif result['symbol'] == "^BSESN": tv_symbol = "BSE:SENSEX"
+        elif result['symbol'] == "^NSEI": tv_symbol = "NSE:NIFTY"
         elif result['symbol'].endswith(".NS"):
             tv_symbol = f"NSE:{result['symbol'].replace('.NS', '')}"
         
