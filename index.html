@@ -251,49 +251,95 @@
       display: none !important;
     }
 
-    /* ===== TABLE STYLING ===== */
-    .ledger-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0 8px;
-      min-width: 600px;
+    .view-fade {
+      animation: viewFadeIn 0.4s ease;
     }
 
-    .ledger-table th {
-      text-align: left;
+    @keyframes viewFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ===== LEDGER SYSTEM ===== */
+    .ledger-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ledger-header {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr;
       padding: 15px;
       color: var(--text-secondary);
       font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 2px;
       font-weight: 800;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .ledger-table tr {
-      background: rgba(255, 255, 255, 0.02);
-      transition: all 0.2s ease;
-    }
-
-    .ledger-table tr:hover {
-      background: rgba(255, 255, 255, 0.05);
-      transform: scale(1.002);
-    }
-
-    .ledger-table td {
+    .ledger-row-div {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr;
       padding: 15px;
-      font-size: 0.95rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.03);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      align-items: center;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255, 255, 255, 0.03);
     }
 
-    .ledger-table td:first-child {
-      border-left: 1px solid rgba(255, 255, 255, 0.03);
-      border-radius: 8px 0 0 8px;
+    .ledger-row-div:hover {
+      background: rgba(255, 255, 255, 0.05);
+      transform: scale(1.005);
+      border-color: rgba(47, 129, 247, 0.3);
     }
 
-    .ledger-table td:last-child {
-      border-right: 1px solid rgba(255, 255, 255, 0.03);
-      border-radius: 0 8px 8px 0;
+    @media (max-width: 900px) {
+      .ledger-header {
+        display: none;
+      }
+
+      .ledger-row-div {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 20px;
+      }
+
+      .ledger-row-div .cell-security {
+        grid-column: 1 / -1;
+      }
+
+      .ledger-row-div .cell-status {
+        display: none;
+      }
+
+      .ledger-row-div .cell-price {
+        font-size: 1.1rem;
+        font-weight: bold;
+      }
+
+      .ledger-row-div .cell-change {
+        text-align: right;
+      }
+
+      .ledger-row-div .cell-action {
+        grid-column: 1 / -1;
+        margin-top: 10px;
+      }
+
+      .ledger-row-div .cell-action button {
+        width: 100%;
+        padding: 10px;
+      }
     }
 
     /* ===== MOBILE OVERRIDES ===== */
@@ -406,6 +452,24 @@
       .ledger-row:active {
         transform: scale(0.96);
         filter: brightness(0.9);
+      }
+
+      /* Skeleton Loading Animation */
+      @keyframes skeleton-pulse {
+        0% {
+          background-position: 200% 0;
+        }
+
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .skeleton {
+        background: linear-gradient(90deg, #161b22 25%, #1c2128 50%, #161b22 75%);
+        background-size: 200% 100%;
+        animation: skeleton-pulse 1.5s infinite;
+        border-radius: 8px;
       }
     }
 
@@ -611,19 +675,15 @@
                 </div>
               </div>
 
-              <div style="overflow-x: auto;">
-                <table class="ledger-table">
-                  <thead>
-                    <tr>
-                      <th>Security</th>
-                      <th>Status</th>
-                      <th>Price</th>
-                      <th>Change</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="assetTable"></tbody>
-                </table>
+              <div class="ledger-container">
+                <div class="ledger-header">
+                  <div>Security</div>
+                  <div>Status</div>
+                  <div>Price</div>
+                  <div>Change</div>
+                  <div>Action</div>
+                </div>
+                <div id="assetTable"></div>
               </div>
             </div>
           </div>
@@ -699,8 +759,15 @@
     /* ===== TAB SWITCH ===== */
     function switchTab(tab) {
       const isMarket = tab === "market";
-      document.getElementById("view-market").classList.toggle("hidden", !isMarket);
-      document.getElementById("view-portfolio").classList.toggle("hidden", isMarket);
+      const viewMarket = document.getElementById("view-market");
+      const viewPortfolio = document.getElementById("view-portfolio");
+
+      viewMarket.classList.toggle("hidden", !isMarket);
+      viewPortfolio.classList.toggle("hidden", isMarket);
+
+      // Add animation classes
+      if (isMarket) viewMarket.classList.add("view-fade");
+      else viewPortfolio.classList.add("view-fade");
 
       document.getElementById("nav-market-desktop").classList.toggle("active", isMarket);
       document.getElementById("nav-portfolio-desktop").classList.toggle("active", !isMarket);
@@ -774,142 +841,155 @@
       container.appendChild(script);
     }
 
-    /* ===== MAIN UPDATE FUNCTION ===== */
-    function updateView() {
+    /* ===== CACHE & STATE ===== */
+    const _CACHE = new Map();
+    async function updateView() {
       const input = document.getElementById("stockSearch").value.toUpperCase().trim();
       const ticker = input || currentTicker;
 
-      // AI Signal Connection
+      // Check Cache
+      if (_CACHE.has(ticker)) {
+        renderWithData(_CACHE.get(ticker));
+        return;
+      }
+
+      // UI Reset
       const val = document.getElementById("predictVal");
       const meta = document.getElementById("predictMeta");
       const prob = document.getElementById("ai-prob");
-
-      if (!val) return; // Guard clause if elements missing
-
-      val.innerHTML = '<span class="pulse-live"></span> ANALYZING...';
-      val.style.color = "var(--text-secondary)";
-      val.style.fontSize = "1.2rem";
-      meta.innerText = "Synchronizing neural weights...";
-      prob.innerText = "--";
-
-      // Clear News temporarily
+      const chart = document.getElementById("tv-chart-main");
       const movers = document.getElementById("movers-container");
-      if (movers) movers.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#444">Scanning Global Wires...</div>';
 
-      // FETCH PREDICTION FIRST (Validates Symbol)
-      fetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`)
-        .then(response => {
-          if (response.status === 404) throw new Error("Symbol Not Found");
-          if (!response.ok) throw new Error("Prediction Unavailable");
-          return response.json();
-        })
-        .then(data => {
-          const trueSymbol = data.symbol; // Backend symbol (e.g. GC=F)
-          const tvSymbol = data.tv_symbol || trueSymbol; // Widget symbol (e.g. TVC:GOLD)
+      if (val) {
+        val.innerHTML = '<span class="pulse-live"></span> ANALYZING...';
+        meta.innerText = "Synchronizing neural weights...";
+      }
 
-          currentTicker = trueSymbol;
+      // Parallel Skeletons
+      if (chart) chart.innerHTML = '<div class="skeleton" style="height:100%;width:100%"></div>';
+      if (movers) movers.innerHTML = '<div class="skeleton" style="height:100%;width:100%;padding:20px"></div>';
 
-          // Update External Widgets with VALID symbol
-          if (chartContainer) {
-            chartContainer.innerHTML = ""; // Clear existing for fresh render
+      try {
+        // Parallel Fetching
+        const [predRes, newsRes] = await Promise.all([
+          fetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`),
+          fetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
+        ]);
 
-            // Create Widget
-            new TradingView.widget({
-              autosize: true,
-              symbol: tvSymbol, // Use TV-friendly symbol
-              interval: "D",
-              theme: "dark",
-              style: "1",
-              locale: "en",
-              toolbar_bg: "#f1f3f6",
-              enable_publishing: false,
-              hide_side_toolbar: false,
-              allow_symbol_change: true,
-              container_id: "tv-chart-main",
-              // Remove saving reference to prevent conflicts
-            });
-          }
-          injectNews(tvSymbol); // Use TV-friendly symbol
+        if (!predRes.ok) throw new Error("Symbol Not Found");
+        const data = await predRes.json();
+        const news = await newsRes.json();
 
-          // Render Prediction
-          const isUp = data.prediction === "UP";
-          val.innerText = isUp ? "STRONG BUY" : "SELL / SHORT";
-          val.style.color = isUp ? "var(--success)" : "var(--danger)";
-          val.style.fontSize = "1.8rem";
-          val.style.fontWeight = "900";
-          val.style.textShadow = isUp ? "0 0 25px rgba(63, 185, 80, 0.4)" : "0 0 25px rgba(248, 81, 73, 0.4)";
+        data.news = news; // Attach news to data packet
+        _CACHE.set(ticker, data); // Store in cache
 
-          // Advanced Mobile Pop
-          const signalCard = document.getElementById("card-signal");
-          if (window.innerWidth < 900 && signalCard) {
-            signalCard.style.borderColor = isUp ? "var(--success)" : "var(--danger)";
-            signalCard.style.boxShadow = isUp ? "0 0 30px rgba(63, 185, 80, 0.2)" : "0 0 30px rgba(248, 81, 73, 0.2)";
-          }
+        renderWithData(data);
+      } catch (e) {
+        handleUpdateError(e);
+      }
+    }
 
-          meta.innerText = `${data.symbol} | $${data.price}`;
-          let confVal = data.confidence * 100;
-          if (confVal > 99.9) confVal = 99.9;
-          prob.innerText = confVal.toFixed(2) + "%";
+    function renderWithData(data) {
+      const val = document.getElementById("predictVal");
+      const meta = document.getElementById("predictMeta");
+      const prob = document.getElementById("ai-prob");
+      const chartContainer = document.getElementById("tv-chart-main");
 
-          // Fetch Custom News (Use Backend Symbol - More reliable for data)
-          fetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${trueSymbol}`)
-            .then(r => r.json())
-            .then(news => {
-              const movers = document.getElementById("movers-container");
-              // Check if we have backend news
-              if (news && news.length > 0 && movers) {
-                movers.innerHTML = `<div style="padding:10px;overflow-y:auto;height:100%">
-                ${news.slice(0, 10).map(n => `
-                    <div style="margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:8px">
-                        <a href="${n.link}" target="_blank" style="color:#e6edf3;text-decoration:none;font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;line-height:1.4">${n.title}</a>
-                        <div style="font-size:0.7rem;color:#8b949e;margin-top:4px;display:flex;justify-content:space-between">
-                            <span>${n.publisher}</span>
-                            <span>${new Date(n.providerPublishTime * 1000).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                `).join('')}
-                </div>`;
-                if (movers.previousElementSibling) movers.previousElementSibling.innerText = `LATEST: ${trueSymbol}`;
-              } else {
-                // Fallback if no backend news (indices often have no direct news in this feed)
-                initMovers();
-                if (movers.previousElementSibling) movers.previousElementSibling.innerText = `MARKET MOVERS`;
-              }
-            })
-            .catch(e => console.log(e));
-        })
-        .catch(e => {
-          console.error(e);
-          if (val) {
-            val.innerText = e.message === "Symbol Not Found" ? "INVALID SYMBOL" : "OFFLINE";
-            val.style.color = "var(--warning)";
-            val.style.textShadow = "none";
-            meta.innerText = e.message === "Symbol Not Found" ? "Try: MSFT, AAPL, RELIANCE.NS" : "Backend Connection Failed";
-            prob.innerText = "ERR";
-          }
+      const trueSymbol = data.symbol;
+      const tvSymbol = data.tv_symbol || trueSymbol;
+      currentTicker = trueSymbol;
 
-          // Restore Movers if failed
-          initMovers();
+      // Update Chart
+      if (chartContainer) {
+        chartContainer.innerHTML = "";
+        new TradingView.widget({
+          autosize: true,
+          symbol: tvSymbol,
+          interval: "D",
+          theme: "dark",
+          style: "1",
+          locale: "en",
+          toolbar_bg: "#f1f3f6",
+          container_id: "tv-chart-main",
         });
+      }
+
+      // Update News
+      const movers = document.getElementById("movers-container");
+      if (data.news && data.news.length > 0 && movers) {
+        movers.innerHTML = `<div style="padding:10px;overflow-y:auto;height:100%">
+          ${data.news.slice(0, 10).map(n => `
+            <div style="margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:8px">
+                <a href="${n.link}" target="_blank" style="color:#e6edf3;text-decoration:none;font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;line-height:1.4">${n.title}</a>
+                <div style="font-size:0.7rem;color:#8b949e;margin-top:4px;display:flex;justify-content:space-between">
+                    <span>${n.publisher}</span>
+                    <span>${new Date(n.providerPublishTime * 1000).toLocaleDateString()}</span>
+                </div>
+            </div>
+          `).join('')}
+        </div>`;
+      } else {
+        initMovers();
+      }
+
+      // Update AI Signal
+      const isUp = data.prediction === "UP";
+      val.innerText = isUp ? "STRONG BUY" : "SELL / SHORT";
+      val.style.color = isUp ? "var(--success)" : "var(--danger)";
+      val.style.fontSize = "1.8rem";
+      val.style.fontWeight = "900";
+      val.style.textShadow = isUp ? "0 0 25px rgba(63, 185, 80, 0.4)" : "0 0 25px rgba(248, 81, 73, 0.4)";
+
+      const signalCard = document.getElementById("card-signal");
+      if (window.innerWidth < 900 && signalCard) {
+        signalCard.style.borderColor = isUp ? "var(--success)" : "var(--danger)";
+        signalCard.style.boxShadow = isUp ? "0 0 30px rgba(63, 185, 80, 0.2)" : "0 0 30px rgba(248, 81, 73, 0.2)";
+      }
+
+      meta.innerText = `${data.symbol} | $${data.price}`;
+      let confVal = data.confidence * 100;
+      if (confVal > 99.9) confVal = 99.9;
+      prob.innerText = confVal.toFixed(2) + "%";
+    }
+
+    function handleUpdateError(e) {
+      const val = document.getElementById("predictVal");
+      const meta = document.getElementById("predictMeta");
+      const prob = document.getElementById("ai-prob");
+      console.error(e);
+      if (val) {
+        val.innerText = e.message === "Symbol Not Found" ? "INVALID SYMBOL" : "OFFLINE";
+        val.style.color = "var(--warning)";
+        meta.innerText = e.message === "Symbol Not Found" ? "Try: MSFT, AAPL, BTCUSD" : "Backend Connection Failed";
+        prob.innerText = "ERR";
+      }
+      initMovers();
     }
 
     /* ===== LEDGER LOGIC ===== */
     function renderLedger() {
-      const body = document.getElementById("assetTable");
-      if (!body) return;
-      body.innerHTML = "";
+      const container = document.getElementById("assetTable");
+      if (!container) return;
+      container.innerHTML = "";
+
       myAssets.forEach((asset, index) => {
         const price = (Math.random() * 500 + 100).toFixed(2);
         const change = (Math.random() * 4 - 2).toFixed(2);
         const isPos = change >= 0;
-        body.innerHTML += `
-      <tr class="ledger-row">
-        <td onclick="viewSymbol('${asset}')" style="cursor:pointer;color:var(--accent-glow);font-weight:bold">${asset}</td>
-        <td style="font-size: 0.7rem; color: var(--text-secondary)">TRACKING</td>
-        <td style="font-family:'JetBrains Mono'">$${price}</td>
-        <td style="color:${isPos ? 'var(--success)' : 'var(--danger)'}; font-family:'JetBrains Mono'">${isPos ? '+' : ''}${change}%</td>
-        <td><button onclick="removeAsset(${index})" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:4px 8px;font-size:.65rem;border-radius:4px;cursor:pointer">REMOVE</button></td>
-      </tr>`;
+
+        container.innerHTML += `
+          <div class="ledger-row-div">
+            <div class="cell-security" onclick="viewSymbol('${asset}')" style="cursor:pointer;color:var(--accent-glow);font-weight:800;font-size:1.1rem">${asset}</div>
+            <div class="cell-status" style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center;">
+              <span class="pulse-live" style="width:6px; height:6px; margin-right:5px"></span> ACTIVE
+            </div>
+            <div class="cell-price" style="font-family:'JetBrains Mono'">$${price}</div>
+            <div class="cell-change" style="color:${isPos ? 'var(--success)' : 'var(--danger)'}; font-family:'JetBrains Mono'">${isPos ? '+' : ''}${change}%</div>
+            <div class="cell-action">
+              <button onclick="removeAsset(${index})" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:6px 12px;font-size:.7rem;border-radius:8px;cursor:pointer;transition:all 0.2s">REMOVE</button>
+            </div>
+          </div>
+        `;
       });
       localStorage.setItem("stockai_ledger", JSON.stringify(myAssets));
     }
