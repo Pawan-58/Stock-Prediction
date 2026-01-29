@@ -129,10 +129,10 @@ def predict_stock(symbol):
         df["Close"] = df["Close"].iloc[:, 0]
         
     # -------------------------------------------
-    # AUTOMATIC BACKEND TRAINING (ON-DEMAND)
+    # AUTOMATIC BACKEND TRAINING (DISABLED FOR STABILITY ON RENDER)
     # -------------------------------------------
-    global model
-    model = fine_tune_model(model, df)
+    # global model
+    # model = fine_tune_model(model, df)
     # -------------------------------------------
             
     prices = df["Close"].pct_change().dropna().values
