@@ -197,6 +197,9 @@ async function updateView() {
 
   if (chart) chart.innerHTML = '<div class="skeleton" style="height:100%;width:100%"></div>';
   if (movers) movers.innerHTML = '<div class="skeleton" style="height:100%;width:100%;padding:20px"></div>';
+  
+  const newsWire = document.getElementById("news-container");
+  if (newsWire) newsWire.innerHTML = '<div class="skeleton" style="height:400px;width:100%;margin:20px"></div>';
 
   try {
     const [data, news] = await Promise.all([
@@ -248,18 +251,24 @@ function renderWithData(data, isCached = false) {
 
   // Update News Wire (COL 3)
   const newsWire = document.getElementById("news-container");
-  if (data.news && data.news.length > 0 && newsWire) {
-    newsWire.innerHTML = `<div style="padding:10px;overflow-y:auto;height:100%">
-      ${data.news.slice(0, 15).map(n => `
-        <div style="margin-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:12px">
-            <a href="${n.link}" target="_blank" style="color:var(--text-primary);text-decoration:none;font-size:0.85rem;font-weight:700;display:block;margin-bottom:6px;line-height:1.4;transition:color 0.2s" onmouseover="this.style.color='var(--accent-glow)'" onmouseout="this.style.color='var(--text-primary)'">${n.title}</a>
-            <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:6px;display:flex;justify-content:space-between;font-family:'JetBrains Mono'">
-                <span style="color:var(--accent-soft)">${n.publisher}</span>
-                <span>${new Date(n.providerPublishTime * 1000).toLocaleDateString()}</span>
-            </div>
-        </div>
-      `).join('')}
-    </div>`;
+  if (newsWire) {
+    if (data.news && data.news.length > 0) {
+      newsWire.innerHTML = `<div style="padding:15px;overflow-y:auto;">
+        ${data.news.slice(0, 15).map(n => `
+          <div style="margin-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:15px">
+              <a href="${n.link}" target="_blank" style="color:var(--text-primary);text-decoration:none;font-size:0.9rem;font-weight:700;display:block;margin-bottom:8px;line-height:1.4;transition:color 0.2s" onmouseover="this.style.color='var(--accent-glow)'" onmouseout="this.style.color='var(--text-primary)'">${n.title}</a>
+              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:8px;display:flex;justify-content:space-between;font-family:'JetBrains Mono'">
+                  <span style="color:var(--accent-soft);font-weight:bold">${n.publisher}</span>
+                  <span>${new Date(n.providerPublishTime * 1000).toLocaleDateString()}</span>
+              </div>
+          </div>
+        `).join('')}
+      </div>`;
+    } else {
+      // Fallback to TradingView News Timeline if yFinance news is empty
+      const tvSym = data.tv_symbol || data.symbol;
+      injectNews(tvSym);
+    }
   }
 
   initMovers();

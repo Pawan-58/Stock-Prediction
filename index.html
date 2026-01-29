@@ -153,11 +153,11 @@
       background: transparent;
       border: none;
       color: white;
-      padding: 8px 16px;
-      width: 220px;
+      padding: 12px 20px;
+      width: 100%;
       outline: none;
       font-family: 'JetBrains Mono';
-      font-size: .9rem;
+      font-size: 1.1rem;
       letter-spacing: 0.5px;
     }
 
@@ -199,8 +199,8 @@
     .layout-col {
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      overflow-y: auto;
+      gap: 30px;
+      overflow-y: visible;
       min-width: 0;
     }
 
@@ -628,9 +628,14 @@
     <main class="main-stage">
       <div class="ticker-header" id="ticker-container"></div>
 
-      <header class="terminal-header">
-        <div style="display:flex; align-items:center; gap:15px">
-          <h2 id="header-title" style="margin:0; font-size: 1.1rem; font-weight: 800;">Market Intelligence</h2>
+      <!-- SEARCH HERO -->
+      <header class="terminal-header"
+        style="flex-direction: column; gap: 20px; padding: 30px 20px; background: var(--bg-ultra);">
+        <div style="display:flex; align-items:center; justify-content: space-between; width: 100%; max-width: 1200px;">
+          <h2 id="header-title"
+            style="margin:0; font-size: 1.1rem; font-weight: 800; color: var(--text-secondary); letter-spacing: 2px;">
+            COMMAND TOWER v3.0</h2>
+
           <div id="backend-status-hud"
             style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); padding:4px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.05)">
             <span id="backend-status-icon" style="width:6px; height:6px; background:#8b949e; border-radius:50%"></span>
@@ -641,79 +646,82 @@
           </div>
         </div>
 
-        <div class="search-group">
-          <input id="stockSearch" placeholder="TICKER (eg: BTCUSD)">
-          <button class="btn-analyze" onclick="updateView()">Execute</button>
+        <div class="search-group"
+          style="width: 100%; max-width: 800px; padding: 10px; border-radius: 16px; background: rgba(0,0,0,0.6);">
+          <input id="stockSearch" placeholder="SEARCH TICKER (eg: AAPL, BTCUSD, RELIANCE.NS)"
+            style="font-size: 1.1rem; width: 100%;">
+          <button class="btn-analyze" onclick="updateView()" style="padding: 12px 30px; font-size: 0.9rem;">EXECUTE
+            ANALYSIS</button>
         </div>
       </header>
 
-      <div id="view-market">
-        <div class="terminal-layout">
+      <div id="view-market" class="view-fade">
+        <div style="max-width: 1400px; margin: 0 auto; padding: 0 20px;">
 
-          <!-- COL 1: INTELLIGENCE SIDEBAR -->
-          <aside class="layout-col">
-            <div class="glass-card" id="card-signal">
-              <div class="card-inner">
-                <div style="font-size:.65rem; color:var(--text-secondary); letter-spacing: 1px; font-weight:bold">NEURAL
-                  CORE SIGNAL</div>
-                <div class="signal-box">
-                  <div id="predictVal"
-                    style="font-size:1.5rem; font-weight:900; color:var(--text-secondary); text-align:center">STANDBY
-                  </div>
-                  <div id="predictMeta"
-                    style="font-size:.7rem; color:var(--text-secondary); margin-top:5px; text-align:center">Awaiting
-                    Data...</div>
-                </div>
-                <div
-                  style="font-size:.75rem; display:flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
-                  <span>Confidence:</span>
-                  <span id="ai-prob" style="font-family:'JetBrains Mono'; color:var(--accent-glow)">--</span>
-                </div>
-              </div>
+          <!-- PRIMARY GRAPH (Full Width) -->
+          <section class="glass-card" style="margin-bottom: 30px; border-radius: 16px;">
+            <div class="news-header">
+              <span id="terminal-symbol">MASTER CHART CORE</span>
+              <span class="pulse-live">REAL-TIME DATA</span>
             </div>
-
-            <div class="glass-card" id="card-movers" style="flex: 1; display: flex; flex-direction: column;">
-              <div class="card-inner" style="flex: 1; display: flex; flex-direction: column;">
-                <div class="news-header">
-                  <span>MARKET MOVERS</span>
-                  <span class="pulse-live"></span>
-                </div>
-                <div id="movers-container" style="flex: 1; min-height: 200px;"></div>
-              </div>
-            </div>
-          </aside>
-
-          <!-- COL 2: TERMINAL CORE -->
-          <section class="main-terminal">
-            <div class="glass-card" id="card-chart" style="flex: 1; display: flex; flex-direction: column;">
-              <div class="card-inner" style="flex: 1; display: flex; flex-direction: column;">
-                <div class="news-header" style="margin-bottom: 5px;">
-                  <span id="terminal-symbol">TERMINAL_v2.1</span>
-                  <span style="font-size: 0.6rem; color: var(--success)">LIVE_FEED</span>
-                </div>
-                <div id="tv-chart-main" class="chart-container" style="flex: 1; min-height: 300px;"></div>
-              </div>
-            </div>
+            <div id="tv-chart-main" style="height: 600px; width: 100%;"></div>
           </section>
 
-          <!-- COL 3: NEWS WIRE -->
-          <aside class="layout-col">
-            <div class="glass-card" id="card-news" style="height: 100%; display: flex; flex-direction: column;">
-              <div class="card-inner" style="flex: 1; display: flex; flex-direction: column;">
-                <div class="news-header">
-                  <span>INSTITUTIONAL WIRE</span>
-                  <span class="pulse-live"></span>
+          <!-- INTELLIGENCE TIER (Dual Column) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 50px;">
+
+            <!-- ANALYZE SECTION -->
+            <div class="layout-col">
+              <div class="glass-card" id="card-signal" style="height: fit-content;">
+                <div class="card-inner">
+                  <div
+                    style="font-size:.7rem; color:var(--text-secondary); letter-spacing: 2px; font-weight:800; margin-bottom: 20px;">
+                    NEURAL CORE SIGNAL</div>
+                  <div class="signal-box">
+                    <div id="predictVal"
+                      style="font-size:2rem; font-weight:900; color:var(--text-secondary); text-align:center">STANDBY
+                    </div>
+                    <div id="predictMeta"
+                      style="font-size:.8rem; color:var(--text-secondary); margin-top:10px; text-align:center">Waiting
+                      for command...</div>
+                  </div>
+                  <div
+                    style="font-size:.85rem; display:flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <span>AI Confidence:</span>
+                    <span id="ai-prob"
+                      style="font-family:'JetBrains Mono'; color:var(--accent-glow); font-weight: 800;">--</span>
+                  </div>
                 </div>
-                <div id="news-container" style="flex: 1; overflow-y: auto;"></div>
+              </div>
+
+              <div class="glass-card">
+                <div class="news-header">GLOBAL MARKET MOVERS</div>
+                <div id="movers-container" style="height: 400px;"></div>
               </div>
             </div>
-          </aside>
 
+            <!-- NEWS WIRE SECTION -->
+            <aside class="layout-col">
+              <div class="glass-card" style="height: 100%; display: flex; flex-direction: column;">
+                <div class="card-inner" style="flex: 1; display: flex; flex-direction: column; padding: 0;">
+                  <div class="news-header">
+                    <span>INSTITUTIONAL WIRE</span>
+                    <span style="font-size: 0.6rem; color: var(--success);">TOP NEWS</span>
+                  </div>
+                  <div id="news-container" style="flex: 1; overflow-y: auto; max-height: 800px;">
+                    <!-- News content will be injected here -->
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+          </div>
         </div>
       </div>
 
       <div id="view-portfolio" class="hidden">
-        <div class="content-grid" style="grid-template-columns: 1fr;">
+        <!-- Portfolio content kept same but centered -->
+        <div style="max-width: 1200px; margin: 0 auto; padding: 30px 20px;">
           <div class="glass-card">
             <div class="card-inner">
               <div
@@ -724,7 +732,6 @@
                   <button class="btn-analyze" onclick="addAsset()">Add</button>
                 </div>
               </div>
-
               <div class="ledger-container">
                 <div class="ledger-header">
                   <div>Security</div>
