@@ -4,7 +4,8 @@
  */
 
 // Configuration
-const API_BASE_URL = "https://stock-prediction-3-ohd2.onrender.com"; 
+const API_BASE_URL = "http://localhost:8000"; // TEMPORARY: Testing local backend
+// const API_BASE_URL = "https://stock-prediction-3-ohd2.onrender.com"; // Switch back after Render deploys
 let currentTicker = "NASDAQ:AAPL";
 let myAssets = JSON.parse(localStorage.getItem("stockai_ledger")) || ["AAPL", "NVDA", "TSLA", "BTCUSD"];
 
