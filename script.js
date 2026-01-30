@@ -4,8 +4,7 @@
  */
 
 // Configuration
-const API_BASE_URL = "http://localhost:8000"; // TEMPORARY: Testing local backend
-// const API_BASE_URL = "https://stock-prediction-3-ohd2.onrender.com"; // Switch back after Render deploys
+const API_BASE_URL = "https://stock-prediction-3-ohd2.onrender.com";
 let currentTicker = "NASDAQ:AAPL";
 let myAssets = JSON.parse(localStorage.getItem("stockai_ledger")) || ["AAPL", "NVDA", "TSLA", "BTCUSD"];
 
@@ -183,17 +182,21 @@ function renderPrediction(data) {
   const prob = document.getElementById("ai-prob");
   const bar = document.getElementById("confidence-bar");
 
-  // Check if we have a valid prediction response
-  const hasValidPrediction = data && data.prediction && data.prediction !== "NEUTRAL";
+  // Check prediction type
+  let label = "● NEUTRAL / HOLD";
+  let color = "var(--text-secondary)";
   
-  let isBull = false;
-  let label = "● ANALYZING";
-  let color = "var(--accent-warning)";
-  
-  if (hasValidPrediction) {
-      isBull = data.prediction === "UP" || data.prediction === "Bullish";
-      label = isBull ? "▲ STRONG BUY" : "▼ STRONG SELL";
-      color = isBull ? "var(--accent-success)" : "var(--accent-danger)";
+  if (data && data.prediction) {
+    if (data.prediction === "UP" || data.prediction === "Bullish") {
+      label = "▲ STRONG BUY";
+      color = "var(--accent-success)";
+    } else if (data.prediction === "DOWN" || data.prediction === "Bearish") {
+      label = "▼ STRONG SELL";
+      color = "var(--accent-danger)";
+    } else if (data.prediction === "NEUTRAL") {
+      label = "● NEUTRAL / HOLD";
+      color = "var(--accent-warning)";
+    }
   }
   
   if (val) {
@@ -247,7 +250,7 @@ function renderChart(tvSymbol) {
     container_id: containerId,
     hide_side_toolbar: false,
     width: "100%",
-    height: "100%",
+    height: window.innerWidth < 900 ? 380 : 500,
     // Advanced Features
     withdateranges: true,
     details: true,
@@ -435,7 +438,7 @@ window.onload = () => {
     // Load initial view with default stock
     setTimeout(() => {
         updateView(); // Fetch default AAPL data
-    }, 500);
+    }, 1500); // Increased delay for slower mobile connections
     
     // Enter key support for search
     const search = document.getElementById("stockSearch");

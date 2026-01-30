@@ -414,11 +414,13 @@ body {
 
   /* Make chart simpler on mobile */
   .chart-wrapper {
-    height: 350px !important;
+    height: 380px !important;
+    min-height: 380px !important;
+    flex: none !important;
   }
 
   .search-wrapper {
-    width: 200px;
+    width: 280px;
   }
 }
 
