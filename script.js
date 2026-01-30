@@ -191,7 +191,19 @@ function renderPrediction(data) {
   }
   
   if (meta) {
-    meta.innerText = `$${data.price || '---'} • ${data.reason || 'AI Model Confidence High'}`;
+    // Advanced Stats Integration
+    let rsiHTML = "";
+    if (data.rsi) {
+        let rsiColor = "var(--text-muted)";
+        if (data.rsi > 70) rsiColor = "var(--accent-danger)";
+        if (data.rsi < 30) rsiColor = "var(--accent-success)";
+        rsiHTML = `<div style="margin-top:10px; display:flex; gap:15px; font-size:0.8rem; font-family:var(--font-mono);">
+            <span>RSI: <span style="color:${rsiColor}">${data.rsi}</span></span>
+            <span>SMA20: <span style="color:var(--text-primary)">$${data.sma_20}</span></span>
+        </div>`;
+    }
+    
+    meta.innerHTML = `Target: <span style="color:white">$${data.price || '---'}</span>${rsiHTML}`;
   }
 
   const confidence = (data.probability || data.confidence * 100 || 0).toFixed(1);
@@ -199,6 +211,8 @@ function renderPrediction(data) {
   if (bar) {
     bar.style.width = `${confidence}%`;
     bar.style.backgroundColor = color;
+    // Add glowing effect to the bar
+    bar.style.boxShadow = `0 0 10px ${color}`;
   }
 }
 
@@ -222,7 +236,15 @@ function renderChart(tvSymbol) {
     container_id: containerId,
     hide_side_toolbar: false,
     width: "100%",
-    height: "100%"
+    height: "100%",
+    // Advanced Features
+    withdateranges: true,
+    details: true,
+    hotlist: true,
+    calendar: true,
+    show_popup_button: true,
+    popup_width: "1000",
+    popup_height: "650"
   });
 }
 
@@ -367,9 +389,46 @@ function initMovers() {
   container.appendChild(script);
 }
 
+/* ===== MARKET SESSION CLOCK ===== */
+function updateMarketStatus() {
+  const brand = document.querySelector('.brand');
+  if (!brand) return;
+
+  let clock = document.getElementById("market-clock");
+  if (!clock) {
+    clock = document.createElement("div");
+    clock.id = "market-clock";
+    clock.style.fontSize = "0.7rem";
+    clock.style.color = "var(--text-secondary)";
+    clock.style.marginTop = "2px";
+    brand.appendChild(clock);
+  }
+
+  const now = new Date();
+  const utcHours = now.getUTCHours();
+  const nyHour = (utcHours - 5 + 24) % 24; 
+  
+  let statusHTML = "";
+  
+  // Show Session only if Active (NY or London)
+  if (nyHour >= 9 && nyHour < 16) {
+    statusHTML = `<span style="color:var(--accent-success)">● NY SESSION</span> • `;
+  } else if (nyHour >= 3 && nyHour < 11) {
+    statusHTML = `<span style="color:var(--accent-warning)">● LONDON</span> • `;
+  }
+  
+  clock.innerHTML = `${statusHTML}${now.toLocaleTimeString()}`;
+}
+
+// Start Clock
+setInterval(updateMarketStatus, 1000);
+updateMarketStatus();
+
 /* ===== INITIALIZATION ===== */
 window.onload = () => {
     checkSession();
+    updateMarketStatus();
+    // ...
     
     // Enter key support for search
     const search = document.getElementById("stockSearch");

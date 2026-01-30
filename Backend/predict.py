@@ -113,138 +113,122 @@ _PREDICT_DATA_CACHE = {}
 _CACHE_EXPIRY_SEC = 300 # 5 minutes
 
 def predict_stock(symbol):
-    # 1. Check in-memory cache
-    now = time.time()
-    if symbol in _PREDICT_DATA_CACHE:
-        df, ts = _PREDICT_DATA_CACHE[symbol]
-        if now - ts < _CACHE_EXPIRY_SEC:
-            print(f"Using in-memory cached data for {symbol}")
+    try:
+        # 1. Check in-memory cache
+        now = time.time()
+        if symbol in _PREDICT_DATA_CACHE:
+            df, ts = _PREDICT_DATA_CACHE[symbol]
+            if now - ts < _CACHE_EXPIRY_SEC:
+                print(f"Using in-memory cached data for {symbol}")
+            else:
+                df = None
         else:
             df = None
-    else:
-        df = None
 
-    if df is None:
-        # Fetch 1 Month of data (Faster and sufficient for SMA20/RSI14)
-        df = yf.download(symbol, period="1mo", interval="1d", progress=False) 
-        if df.empty:
-            # Try original granular fetch as fallback
-            df = yf.download(symbol, period="5d", interval="1h", progress=False)
-        
-        if not df.empty:
-            _PREDICT_DATA_CACHE[symbol] = (df, now)
-
-    if df.empty or len(df) < WINDOW_SIZE + 2:
-        return None
-        
-    # Handle MultiIndex (yfinance update)
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.droplevel(1)
-    
-    # Extra Safety: Ensure 'Close' is a Series, not a DataFrame
-    if "Close" in df.columns and isinstance(df["Close"], pd.DataFrame):
-        df["Close"] = df["Close"].iloc[:, 0]
-        
-    # -------------------------------------------
-    # AUTOMATIC BACKEND TRAINING (DISABLED FOR STABILITY ON RENDER)
-    # -------------------------------------------
-    # global model
-    # model = fine_tune_model(model, df)
-    # -------------------------------------------
+        if df is None:
+            # Fetch 1 Month of data
+            try:
+                df = yf.download(symbol, period="1mo", interval="1d", progress=False)
+                if df.empty:
+                    df = yf.download(symbol, period="5d", interval="1h", progress=False)
+            except Exception as e:
+                print(f"Data fetch error for {symbol}: {e}")
+                df = pd.DataFrame() # Treat as empty
             
-    prices = df["Close"].pct_change().dropna().values
+            if not df.empty:
+                _PREDICT_DATA_CACHE[symbol] = (df, now)
 
-    if len(prices) < WINDOW_SIZE + 1: return None
+        if df.empty or len(df) < WINDOW_SIZE + 2:
+             # Soft Fail: Return None creates 404 in app.py (which might be okay, but user wants AVOID 500)
+             # Better to return None -> 404 is cleaner than 500. 
+             # But if 404 causes frontend error... let's return a safe FALLBACK instead.
+             raise ValueError("Insufficient data")
+            
+        # Handle MultiIndex (yfinance update)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.droplevel(1)
+        
+        # Extra Safety: Ensure 'Close' is a Series
+        if "Close" in df.columns and isinstance(df["Close"], pd.DataFrame):
+            df["Close"] = df["Close"].iloc[:, 0]
+            
+        prices = df["Close"].pct_change().dropna().values
 
-    last_window = prices[-WINDOW_SIZE:]
-    previous = prices[-WINDOW_SIZE - 1]
+        if len(prices) < WINDOW_SIZE + 1: raise ValueError("Not enough price points")
 
-    X = torch.tensor(last_window, dtype=torch.float32).reshape(1, WINDOW_SIZE)
-
-    print("!!!!----Size of X:", X.size())
-    try:
-        # Use simple technical analysis instead of just the model embedding
-        # Calculate RSI
+        last_window = prices[-WINDOW_SIZE:]
+        previous = prices[-WINDOW_SIZE - 1]
+        
+        # --- ANALYSIS ---
+        X = torch.tensor(last_window, dtype=torch.float32).reshape(1, WINDOW_SIZE)
+        
+        # RSI / SMA
+        df["Close"] = pd.to_numeric(df["Close"], errors='coerce')
         delta = df["Close"].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
         rs = gain / loss
         df['RSI'] = 100 - (100 / (1 + rs))
-        
-        # Calculate SMA
         df['SMA_20'] = df['Close'].rolling(window=20).mean()
         
-        current_rsi = df['RSI'].iloc[-1]
-        current_price = df['Close'].iloc[-1]
-        sma_20 = df['SMA_20'].iloc[-1]
-        
-        print(f"Stats for {symbol}: RSI={current_rsi}, Price={current_price}, SMA={sma_20}")
+        current_rsi = float(df['RSI'].iloc[-1]) if not pd.isna(df['RSI'].iloc[-1]) else 50.0
+        sma_20 = float(df['SMA_20'].iloc[-1]) if not pd.isna(df['SMA_20'].iloc[-1]) else float(df['Close'].iloc[-1])
+        current_price = float(df['Close'].iloc[-1])
 
-        # Logic: TREND FOLLOWING
-        # Price > SMA => Up Trend (Primary Signal)
-        # RSI used for Momentum Strength, not just overbought/oversold reversal
-        
+        # Logic
         score = 0
+        if current_price > sma_20: score += 3
+        else: score -= 3
         
-        # 1. Trend Analysis (Weight: 4)
-        if current_price > sma_20:
-            score += 3  # Strong Bullish Bias
-        else:
-            score -= 3  # Strong Bearish Bias
-            
-        # 2. Momentum Analysis (Weight: 2)
-        if 50 <= current_rsi <= 80:
-            score += 1  # Healthy Bullish Momentum
-        elif current_rsi > 80:
-            score += 0  # Extreme Overbought (Neutralize, don't sell yet in strong trend)
-        elif 20 <= current_rsi < 50:
-            score -= 1  # Bearish Momentum
-        elif current_rsi < 20:
-            score += 1  # Oversold Bounce Potential (slight contrarian)
+        if 50 <= current_rsi <= 80: score += 1
+        elif 20 <= current_rsi < 50: score -= 1
+        
+        # Model Prediction
+        try:
+            with torch.no_grad():
+                embedding = model.forward_one(X)
+                emb_conf = float(torch.norm(embedding).item())
+        except:
+            emb_conf = 0.5 # Model failure fallback
 
-        # Fallback to model if TA is neutral
-        with torch.no_grad():
-            embedding = model.forward_one(X)
-            # Normalize embedding confidence 0-1
-            emb_conf = float(torch.norm(embedding).item())
-        
-        # Combine
+        # Final Decision
         if score > 0: 
             prediction = "UP"
-            # Map score (1 to 4) to 55-95%
-            confidence = 0.55 + (score * 0.1)
+            confidence = 0.6 + (score * 0.05)
         elif score < 0:
             prediction = "DOWN"
-            confidence = 0.55 + (abs(score) * 0.1)
+            confidence = 0.6 + (abs(score) * 0.05)
         else:
-            # Neutral TA, trust the model trend
             prediction = "UP" if last_window[-1] > previous else "DOWN"
-            confidence = 0.5 + (emb_conf * 0.1)
+            confidence = 0.55 + (emb_conf * 0.1)
             
-        # Boost confidence for strong trends
-        if abs(score) >= 3:
-            confidence += 0.1
-        else:
-            # Neutral TA, trust the model trend
-            prediction = "UP" if last_window[-1] > previous else "DOWN"
-            confidence = emb_conf
-            
-        # Cap confidence
         confidence = min(max(confidence, 0.51), 0.99)
+        
+        return {
+            "symbol": symbol,
+            "price": round(current_price, 2),
+            "prediction": prediction,
+            "confidence": round(confidence, 3),
+            "rsi": round(current_rsi, 2),
+            "sma_20": round(sma_20, 2),
+            "trend_score": score
+        }
 
     except Exception as e:
-        print("!!!!----Analysis failed:", e)
-        # Fallback
-        prediction = "UP" if last_window[-1] > previous else "DOWN"
-        confidence = 0.60
-
-    print(f"!!!!----Prediction for {symbol}: {prediction} with confidence {confidence}")
-    
-    price_val = float(df["Close"].iloc[-1].item()) if hasattr(df["Close"].iloc[-1], 'item') else float(df["Close"].iloc[-1])
-    
-    return {
-        "symbol": symbol,
-        "price": price_val,
-        "prediction": prediction,
-        "confidence": round(confidence, 3)
-    }
+        print(f"!!!!----CRITICAL FAIL {symbol}: {e}")
+        # GLOBAL FALLBACK: Never crash.
+        # Check if we technically have a price
+        fallback_price = 0.0
+        try: 
+            if 'df' in locals() and not df.empty: fallback_price = float(df['Close'].iloc[-1])
+        except: pass
+            
+        return {
+            "symbol": symbol,
+            "price": fallback_price,
+            "prediction": "NEUTRAL",
+            "confidence": 0.50,
+            "rsi": 50.0,
+            "sma_20": fallback_price,
+            "reason": "Market Data Unavailable"
+        }
