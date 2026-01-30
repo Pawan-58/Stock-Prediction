@@ -6,1109 +6,165 @@
   <title>StockAI Pro | Institutional Terminal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+  <!-- External Resources -->
   <script src="https://s3.tradingview.com/tv.js"></script>
-
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
-
-    :root {
-      /* Institutional Palette */
-      --bg-ultra: #02040a;
-      --sidebar-bg: #0d1117;
-      --card-bg: rgba(22, 27, 34, 0.7);
-      /* Glass-ready */
-      --accent-glow: #2f81f7;
-      --accent-soft: rgba(47, 129, 247, 0.15);
-      --border-color: #30363d;
-      --text-primary: #f0f6fc;
-      --text-secondary: #8b949e;
-      --success: #3fb950;
-      --danger: #f85149;
-      --warning: #d29922;
-      --nav-height: 70px;
-
-      /* New Premium Tokens */
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --neon-blue: #58a6ff;
-      --terminal-green: #3fb950;
-    }
-
-    * {
-      box-sizing: border-box;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      margin: 0;
-      background: var(--bg-ultra);
-      color: var(--text-primary);
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* ===== LAYOUT ===== */
-    .terminal-container {
-      display: grid;
-      grid-template-columns: 70px 1fr;
-      height: 100vh;
-      width: 100%;
-    }
-
-    /* Side Navigation (Desktop) */
-    .nav-rail {
-      background: var(--sidebar-bg);
-      border-right: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px 0;
-      gap: 25px;
-      z-index: 100;
-    }
-
-    /* Bottom Navigation (Mobile) */
-    .mobile-nav {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      height: var(--nav-height);
-      background: var(--sidebar-bg);
-      border-top: 1px solid var(--border-color);
-      justify-content: space-around;
-      align-items: center;
-      z-index: 1000;
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-
-    .nav-rail .icon,
-    .mobile-nav .icon {
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 12px;
-      cursor: pointer;
-      color: var(--text-secondary);
-      font-size: 1.4rem;
-      transition: all 0.2s ease;
-    }
-
-    .icon.active {
-      background: var(--accent-soft);
-      color: var(--accent-glow);
-      box-shadow: 0 0 15px var(--accent-soft);
-    }
-
-    .main-stage {
-      overflow-y: auto;
-      height: 100vh;
-      background: #010409;
-      padding-bottom: 80px;
-      /* Space for mobile nav */
-    }
-
-    /* ===== HEADER & SEARCH ===== */
-    .ticker-header {
-      width: 100%;
-      height: 42px;
-      border-bottom: 1px solid var(--border-color);
-      background: #000;
-      flex-shrink: 0;
-    }
-
-    .terminal-header {
-      padding: 12px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--sidebar-bg);
-      border-bottom: 1px solid var(--border-color);
-      position: sticky;
-      top: 0;
-      z-index: 90;
-    }
-
-    .search-group {
-      display: flex;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
-      padding: 6px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-    }
-
-    .search-group:focus-within {
-      border-color: var(--accent-glow);
-      box-shadow: 0 0 20px rgba(47, 129, 247, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.5);
-      transform: translateY(-1px);
-    }
-
-    .search-group input {
-      background: transparent;
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      width: 220px;
-      outline: none;
-      font-family: 'JetBrains Mono';
-      font-size: .9rem;
-      letter-spacing: 0.5px;
-    }
-
-    .btn-analyze {
-      background: linear-gradient(135deg, var(--accent-glow), #1a56db);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 20px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: .75rem;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 15px rgba(47, 129, 247, 0.3);
-    }
-
-    .btn-analyze:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(47, 129, 247, 0.5);
-      filter: brightness(1.1);
-    }
-
-    .btn-analyze:active {
-      transform: translateY(0);
-    }
-
-    /* ===== GRID & CARDS ===== */
-    .content-grid {
-      display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 20px;
-      padding: 20px;
-    }
-
-    .glass-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 15px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .glass-card:hover {
-      border-color: rgba(88, 166, 255, 0.4);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-
-    .card-inner {
-      padding: 20px;
-    }
-
-    /* ===== COMPONENTS ===== */
-    .chart-container {
-      width: 100%;
-      height: 500px;
-      background: #000;
-    }
-
-    #tv-chart-main {
-      width: 100%;
-      height: 100%;
-    }
-
-    .news-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: .7rem;
-      letter-spacing: 1px;
-      font-weight: 800;
-      padding: 12px 15px;
-      background: #1e222d;
-      border-bottom: 1px solid #334155;
-    }
-
-    #news-container {
-      height: 400px;
-      width: 100%;
-    }
-
-    #movers-container {
-      height: 400px;
-      width: 100%;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .view-fade {
-      animation: viewFadeIn 0.4s ease;
-    }
-
-    @keyframes viewFadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* ===== LEDGER SYSTEM ===== */
-    .ledger-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .ledger-header {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr;
-      padding: 15px;
-      color: var(--text-secondary);
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      font-weight: 800;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .ledger-row-div {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 12px;
-      align-items: center;
-      transition: all 0.2s ease;
-      border: 1px solid rgba(255, 255, 255, 0.03);
-    }
-
-    .ledger-row-div:hover {
-      background: rgba(255, 255, 255, 0.05);
-      transform: scale(1.005);
-      border-color: rgba(47, 129, 247, 0.3);
-    }
-
-    @media (max-width: 900px) {
-      .ledger-header {
-        display: none;
-      }
-
-      .ledger-row-div {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        padding: 20px;
-      }
-
-      .ledger-row-div .cell-security {
-        grid-column: 1 / -1;
-      }
-
-      .ledger-row-div .cell-status {
-        display: none;
-      }
-
-      .ledger-row-div .cell-price {
-        font-size: 1.1rem;
-        font-weight: bold;
-      }
-
-      .ledger-row-div .cell-change {
-        text-align: right;
-      }
-
-      .ledger-row-div .cell-action {
-        grid-column: 1 / -1;
-        margin-top: 10px;
-      }
-
-      .ledger-row-div .cell-action button {
-        width: 100%;
-        padding: 10px;
-      }
-    }
-
-    /* ===== MOBILE OVERRIDES ===== */
-    /* ===== MOBILE OVERRIDES (ADVANCED) ===== */
-    @media (max-width: 900px) {
-      .terminal-container {
-        grid-template-columns: 1fr;
-      }
-
-      .nav-rail {
-        display: none;
-      }
-
-      .mobile-nav {
-        display: flex;
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        right: 20px;
-        height: 64px;
-        background: rgba(13, 17, 23, 0.85);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--glass-border);
-        border-radius: 24px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-        justify-content: space-around;
-        align-items: center;
-        z-index: 1000;
-        padding: 0 10px;
-      }
-
-      .mobile-nav .icon {
-        width: 100%;
-        height: 100%;
-        background: transparent;
-        border-radius: 16px;
-        font-size: 1.2rem;
-        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .mobile-nav .icon.active {
-        background: var(--accent-soft);
-        color: var(--accent-glow);
-        box-shadow: none;
-      }
-
-      .main-stage {
-        height: 100vh;
-        padding-bottom: 110px;
-        /* Space for floating nav */
-      }
-
-      .content-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        padding: 15px;
-        gap: 15px;
-      }
-
-      .main-terminal,
-      .sidebar {
-        display: contents;
-      }
-
-      #card-chart {
-        order: 1;
-        margin-top: 5px;
-      }
-
-      #card-signal {
-        order: 2;
-        border: 1px solid rgba(47, 129, 247, 0.3);
-        background: radial-gradient(circle at top right, rgba(47, 129, 247, 0.1), transparent);
-      }
-
-      #card-news {
-        order: 3;
-      }
-
-      #card-movers {
-        order: 4;
-      }
-
-      .terminal-header {
-        padding: 20px;
-        flex-direction: column;
-        gap: 15px;
-        background: var(--bg-ultra);
-        text-align: center;
-      }
-
-      .search-group {
-        width: 100%;
-      }
-
-      .search-group input {
-        width: 100%;
-        font-size: 1rem;
-      }
-
-      .chart-container {
-        height: 40vh;
-        border-radius: 12px;
-      }
-
-      /* Tactile Feedback */
-      .btn-analyze:active,
-      .mobile-nav .icon:active,
-      .ledger-row:active {
-        transform: scale(0.96);
-        filter: brightness(0.9);
-      }
-
-      /* Skeleton Loading Animation */
-      @keyframes skeleton-pulse {
-        0% {
-          background-position: 200% 0;
-        }
-
-        100% {
-          background-position: -200% 0;
-        }
-      }
-
-      .skeleton {
-        background: linear-gradient(90deg, #161b22 25%, #1c2128 50%, #161b22 75%);
-        background-size: 200% 100%;
-        animation: skeleton-pulse 1.5s infinite;
-        border-radius: 8px;
-      }
-    }
-
-    /* Mobile Only Elements */
-    .mobile-stats-banner {
-      display: none;
-      padding: 15px;
-      background: linear-gradient(90deg, var(--accent-soft), transparent);
-      border-radius: 12px;
-      margin-bottom: 20px;
-      border-left: 3px solid var(--accent-glow);
-      border: 1px solid var(--glass-border);
-    }
-
-    @media (max-width: 900px) {
-      .mobile-stats-banner {
-        display: block;
-      }
-    }
-
-    /* ===== AI SIGNAL STYLING ===== */
-    .signal-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      margin: 15px 0;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .signal-box::before {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(47, 129, 247, 0.05) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    /* Live Pulse Animation */
-    @keyframes pulse-dot {
-      0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(47, 129, 247, 0.7);
-      }
-
-      70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 6px rgba(47, 129, 247, 0);
-      }
-
-      100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(47, 129, 247, 0);
-      }
-    }
-
-    .pulse-live {
-      width: 8px;
-      height: 8px;
-      background: var(--accent-glow);
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 8px;
-      animation: pulse-dot 2s infinite;
-    }
-
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border-color);
-      border-radius: 10px;
-    }
-  </style>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 
-<body id="app-root">
+<body>
 
-  <!-- LOGIN SCREEN -->
-  <div id="login-screen"
-    style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0d1117;z-index:9999;display:flex;justify-content:center;align-items:center;">
-    <div
-      style="background:#161b22;padding:40px;border-radius:16px;border:1px solid #30363d;width:350px;text-align:center;box-shadow:0 0 50px rgba(0,0,0,0.5)">
-      <div style="font-size:3rem;margin-bottom:20px">💎</div>
-      <h2 style="color:white;margin-bottom:10px;font-family:'Plus Jakarta Sans'">Institutional Access</h2>
-      <p style="color:#8b949e;font-size:0.9rem;margin-bottom:30px">Enter secure credentials to access the terminal.</p>
-
-      <input type="password" placeholder="Passkey (Any)"
-        style="width:100%;padding:12px;background:#0d1117;border:1px solid #30363d;color:white;border-radius:6px;margin-bottom:20px;outline:none;font-family:'JetBrains Mono'">
-
-      <button onclick="handleLogin()"
-        style="width:100%;padding:12px;background:#238636;color:white;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:1rem">AUTHENTICATE</button>
+  <!-- LOGIN OVERLAY -->
+  <div id="login-screen" class="login-overlay" style="z-index:9999;">
+    <div class="login-card">
+      <div style="font-size:3rem; margin-bottom:20px;">💎</div>
+      <h2 style="margin-bottom:10px;">Institutional Access v2.1</h2>
+      <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:30px;">Secure Terminal Gateway</p>
+      <input type="password" class="login-input" placeholder="ACCESS KEY">
+      <button class="btn-primary" style="width:100%; margin-bottom:15px;" onclick="handleLogin()">AUTHENTICATE</button>
+      <div style="font-size:0.75rem; color:var(--text-secondary); cursor:pointer; text-decoration:underline;"
+        onclick="bypassLogin()">Trouble connecting? Bypass Login</div>
     </div>
   </div>
 
-  <div class="terminal-container" id="mainDashboard" style="display:none">
+  <div class="app-container" id="mainDashboard" style="display:none;">
 
+    <!-- SIDE NAVIGATION (DESKTOP) -->
     <aside class="nav-rail">
-      <div class="icon active" id="nav-market-desktop" onclick="switchTab('market')">📊</div>
-      <div class="icon" id="nav-portfolio-desktop" onclick="switchTab('portfolio')">💼</div>
-      <div class="icon" style="margin-top:auto;color:var(--danger)" onclick="handleLogout()">🔒</div>
+      <div class="nav-item active" id="nav-market-desktop" onclick="switchTab('market')" title="Market Intelligence">
+        📊
+      </div>
+      <div class="nav-item" id="nav-portfolio-desktop" onclick="switchTab('portfolio')" title="Portfolio & Assets">
+        💼
+      </div>
+      <div class="nav-item" style="margin-top:auto; color:var(--accent-danger);" onclick="handleLogout()"
+        title="Secure Logout">
+        🔒
+      </div>
     </aside>
 
-    <nav class="mobile-nav">
-      <div class="icon active" id="nav-market-mobile" onclick="switchTab('market')">📊</div>
-      <div class="icon" id="nav-portfolio-mobile" onclick="switchTab('portfolio')">💼</div>
-      <div class="icon" style="color:var(--danger)" onclick="handleLogout()">🔒</div>
-    </nav>
+    <!-- MAIN AREA -->
+    <main class="main-content">
+      <!-- TICKER TAPE -->
+      <div class="ticker-wrapper" id="ticker-container"
+        style="height:46px; border-bottom:1px solid var(--border-subtle); overflow:hidden;">
+        <!-- TradingView Ticker injected here -->
+      </div>
 
-    <main class="main-stage">
-      <div class="ticker-header" id="ticker-container"></div>
+      <!-- TOP BAR -->
+      <header class="top-bar">
+        <div class="brand">
+          <span style="color:var(--accent-glow);">STOCK</span>AI PRO
+        </div>
 
-      <header class="terminal-header">
-        <h2 id="header-title" style="margin:0; font-size: 1.1rem; font-weight: 800;">Market Intelligence</h2>
-
-        <div class="search-group">
-          <input id="stockSearch" placeholder="TICKER (eg: BTCUSD)">
-          <button class="btn-analyze" onclick="updateView()">Execute</button>
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="stockSearch" placeholder="SEARCH TICKER (e.g. AAPL)">
         </div>
       </header>
 
-      <div id="view-market">
-        <div class="content-grid">
+      <!-- SCROLLABLE CONTENT -->
+      <div class="scrollable-area">
 
-          <!-- MOBILE QUICK STATS -->
-          <div class="mobile-stats-banner">
-            <div
-              style="font-size: 0.6rem; color: var(--text-secondary); letter-spacing: 1px; font-weight: 800; margin-bottom: 5px;">
-              MARKET SENTIMENT</div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span id="mobile-sentiment"
-                style="font-size: 1.1rem; font-weight: 800; color: var(--accent-glow);">NEUTRAL</span>
-              <span id="mobile-vol"
-                style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: var(--text-secondary);">VOL: HIGH</span>
-            </div>
-          </div>
+        <!-- VIEW: MARKET INTELLIGENCE -->
+        <div id="view-market" class="view-section">
+          <div class="dashboard-grid">
 
-          <div class="main-terminal">
-            <div class="glass-card" id="card-chart">
-              <div class="chart-container">
-                <div id="tv-chart-main"></div>
-              </div>
-            </div>
+            <!-- LEFT COLUMN (CHARTS & NEWS) -->
+            <div class="main-column" style="display:flex; flex-direction:column; gap:20px;">
 
-            <div class="glass-card" id="card-news">
-              <div class="news-header">
-                <span>INSTITUTIONAL NEWS WIRE</span>
-                <span style="color:var(--accent-glow)"><span class="pulse-live"></span>LIVE</span>
-              </div>
-              <div id="news-container"></div>
-            </div>
-          </div>
-
-          <aside class="sidebar">
-            <div class="glass-card" id="card-signal">
-              <div class="card-inner">
-                <div style="font-size:.65rem; color:var(--text-secondary); letter-spacing: 1px; font-weight:bold">NEURAL
-                  CORE SIGNAL</div>
-                <div class="signal-box">
-                  <div id="predictVal" style="font-size:1.8rem; font-weight:900; color:var(--text-secondary)">STANDBY
+              <!-- CHART CARD -->
+              <div class="glass-card" style="min-height: 500px;" id="chart-card-container">
+                <div class="card-header">
+                  <span class="card-title" id="terminal-symbol">NASDAQ:AAPL</span>
+                  <div class="live-indicator">
+                    <div class="pulse-dot"></div> LIVE MARKET
                   </div>
-                  <div id="predictMeta" style="font-size:.7rem; color:var(--text-secondary); margin-top:5px">System
-                    Initialized...</div>
                 </div>
-                <div style="font-size:.75rem; display:flex; justify-content: space-between;">
-                  <span>Neural Confidence:</span>
-                  <span id="ai-prob" style="font-family:'JetBrains Mono'; color:var(--accent-glow)">--</span>
+                <div class="card-body chart-wrapper">
+                  <div id="tv-chart-main" style="width:100%; height:100%;"></div>
+                </div>
+              </div>
+
+              <!-- NEWS CARD -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <span class="card-title">Institutional Wire</span>
+                </div>
+                <div class="card-body" style="height: 400px;">
+                  <div id="news-container" style="width:100%; height:100%;"></div>
                 </div>
               </div>
             </div>
 
-            <div class="glass-card" id="card-movers">
-              <div class="news-header">
-                <span>MARKET MOVERS</span>
-                <span style="color:var(--accent-glow)"><span class="pulse-live"></span>LIVE</span>
+            <!-- RIGHT COLUMN (SIDEBAR WIDGETS) -->
+            <aside class="side-column" style="display:flex; flex-direction:column; gap:20px;">
+
+              <!-- AI PREDICTION CARD -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <span class="card-title">Neural Output</span>
+                  <span class="font-mono" style="font-size:0.7rem; color:var(--accent-glow);" id="ai-prob">--%</span>
+                </div>
+                <div class="card-body ai-signal-box">
+                  <div id="predictMeta" class="signal-sub">System Standby</div>
+                  <div id="predictVal" class="signal-value" style="color:var(--text-muted);">INITIALIZING</div>
+
+                  <div
+                    style="margin-top:15px; background:rgba(255,255,255,0.1); height:4px; border-radius:2px; overflow:hidden;">
+                    <div id="confidence-bar"
+                      style="width:0%; height:100%; background:var(--accent-glow); transition:width 1s ease;"></div>
+                  </div>
+                </div>
               </div>
-              <div id="movers-container"></div>
-            </div>
-          </aside>
 
-        </div>
-      </div>
+              <!-- MARKET MOVERS CARD -->
+              <div class="glass-card" style="flex:1;">
+                <div class="card-header">
+                  <span class="card-title">Active Volatility</span>
+                </div>
+                <div class="card-body" style="height:100%; min-height:400px;">
+                  <div id="movers-container" style="width:100%; height:100%;"></div>
+                </div>
+              </div>
 
-      <div id="view-portfolio" class="hidden">
-        <div class="content-grid" style="grid-template-columns: 1fr;">
+            </aside>
+          </div>
+        </div> <!-- END MARKET VIEW -->
+
+        <!-- VIEW: PORTFOLIO -->
+        <div id="view-portfolio" class="view-section hidden">
           <div class="glass-card">
-            <div class="card-inner">
-              <div
-                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px; flex-wrap: wrap; gap: 10px;">
-                <h2 style="margin:0">Asset Ledger</h2>
-                <div class="search-group">
-                  <input id="assetInput" placeholder="ADD SYMBOL...">
-                  <button class="btn-analyze" onclick="addAsset()">Add</button>
-                </div>
+            <div class="card-header">
+              <span class="card-title">Asset Ledger</span>
+              <div style="display:flex; gap:10px;">
+                <input id="assetInput" placeholder="SYMBOL"
+                  style="background:transparent; border:1px solid var(--border-subtle); color:white; padding:4px 8px; border-radius:4px; font-family:var(--font-mono); text-transform:uppercase; width:80px;">
+                <button class="btn-primary" onclick="addAsset()"
+                  style="padding:4px 10px; font-size:0.75rem;">ADD</button>
               </div>
-
-              <div class="ledger-container">
-                <div class="ledger-header">
-                  <div>Security</div>
-                  <div>Status</div>
-                  <div>Price</div>
-                  <div>Change</div>
-                  <div>Action</div>
-                </div>
-                <div id="assetTable"></div>
-              </div>
+            </div>
+            <div class="card-body p-0">
+              <div id="assetTable" style="width:100%;"></div>
             </div>
           </div>
-        </div>
-      </div>
+        </div> <!-- END PORTFOLIO VIEW -->
+
+      </div> <!-- END SCROLL AREA -->
+
+      <!-- MOBILE NAV (BOTTOM) -->
+      <nav class="mobile-nav">
+        <div class="nav-item active" id="nav-market-mobile" onclick="switchTab('market')">📊</div>
+        <div class="nav-item" id="nav-portfolio-mobile" onclick="switchTab('portfolio')">💼</div>
+        <div class="nav-item" style="color:var(--accent-danger);" onclick="handleLogout()">🔒</div>
+      </nav>
 
     </main>
   </div>
 
-  <script>
-    let currentTicker = "NASDAQ:AAPL";
-    let myAssets = JSON.parse(localStorage.getItem("stockai_ledger")) || ["AAPL", "NVDA", "TSLA", "BTCUSD"];
-
-    /* ===== SESSION MANAGEMENT ===== */
-    function checkSession() {
-      const isAuth = localStorage.getItem("institutional_auth") === "true";
-      const loginScreen = document.getElementById("login-screen");
-      const dashboard = document.getElementById("mainDashboard");
-
-      if (isAuth) {
-        loginScreen.style.display = "none";
-        dashboard.style.display = "grid";
-        setTimeout(() => {
-          initTicker();
-          initMovers();
-          renderLedger();
-          updateView();
-        }, 100);
-      } else {
-        loginScreen.style.display = "flex";
-        dashboard.style.display = "none";
-      }
-    }
-
-    function handleLogin() {
-      const btn = document.querySelector('#login-screen button');
-      btn.innerHTML = "VERIFYING...";
-
-      setTimeout(() => {
-        localStorage.setItem("institutional_auth", "true");
-        location.reload();
-      }, 800);
-    }
-
-    function handleLogout() {
-      // Professional Logout Overlay
-      const overlay = document.createElement('div');
-      overlay.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-        display: flex; justify-content: center; align-items: center; z-index: 10000;
-        opacity: 0; transition: opacity 0.5s ease;
-    `;
-      overlay.innerHTML = `
-        <div style="text-align:center; color:white; font-family:'Plus Jakarta Sans'">
-            <div style="font-size:3rem; margin-bottom:20px">🔒</div>
-            <h2 style="margin:0">Secure Session Terminated</h2>
-            <p style="color:#888">Clearing Encrypted Cache...</p>
-        </div>
-    `;
-      document.body.appendChild(overlay);
-
-      // Trigger Animation
-      setTimeout(() => overlay.style.opacity = '1', 10);
-
-      // Clear Session
-      setTimeout(() => {
-        localStorage.removeItem("institutional_auth");
-        location.reload();
-      }, 2000);
-    }
-
-    /* ===== TAB SWITCH ===== */
-    function switchTab(tab) {
-      const isMarket = tab === "market";
-      const viewMarket = document.getElementById("view-market");
-      const viewPortfolio = document.getElementById("view-portfolio");
-
-      viewMarket.classList.toggle("hidden", !isMarket);
-      viewPortfolio.classList.toggle("hidden", isMarket);
-
-      // Add animation classes
-      if (isMarket) viewMarket.classList.add("view-fade");
-      else viewPortfolio.classList.add("view-fade");
-
-      document.getElementById("nav-market-desktop").classList.toggle("active", isMarket);
-      document.getElementById("nav-portfolio-desktop").classList.toggle("active", !isMarket);
-
-      document.getElementById("nav-market-mobile").classList.toggle("active", isMarket);
-      document.getElementById("nav-portfolio-mobile").classList.toggle("active", !isMarket);
-
-      document.getElementById("header-title").innerText = isMarket ? "Market Intelligence" : "Asset Ledger";
-    }
-
-    /* ===== TICKER WIDGET ===== */
-    function initTicker() {
-      const script = document.createElement("script");
-      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        symbols: [
-          { proName: "NASDAQ:AAPL", title: "Apple" },
-          { proName: "NASDAQ:NVDA", title: "Nvidia" },
-          { proName: "NASDAQ:TSLA", title: "Tesla" },
-          { proName: "BITSTAMP:BTCUSD", title: "Bitcoin" },
-          { proName: "TVC:VIX", title: "VIX Index" },
-          { proName: "FOREXCOM:SPXUSD", title: "S&P 500" }
-        ],
-        colorTheme: "dark",
-        isTransparent: true,
-        displayMode: "adaptive",
-        locale: "en"
-      });
-      const container = document.getElementById("ticker-container");
-      if (container) container.appendChild(script);
-    }
-
-    /* ===== HOTLISTS (MOVERS) ===== */
-    function initMovers() {
-      const container = document.getElementById("movers-container");
-      if (!container) return;
-      container.innerHTML = "";
-      const script = document.createElement("script");
-      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js";
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        colorTheme: "dark",
-        exchange: "US",
-        showChart: false,
-        width: "100%",
-        height: "100%",
-        isTransparent: true
-      });
-      container.appendChild(script);
-    }
-
-    /* ===== NEWS TIMELINE ===== */
-    function injectNews(symbol) {
-      const container = document.getElementById("news-container");
-      if (!container) return;
-      container.innerHTML = "";
-      const script = document.createElement("script");
-      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        feedMode: "symbol",
-        symbol: symbol,
-        isTransparent: true,
-        displayMode: "regular",
-        width: "100%",
-        height: "100%",
-        colorTheme: "dark",
-        locale: "en"
-      });
-      container.appendChild(script);
-    }
-
-    /* ===== CACHE & STATE ===== */
-    const _CACHE = new Map();
-    let isFetching = false;
-
-    // Robust fetch with retry logic for backend cold starts
-    async function robustFetch(url, retries = 3, delay = 2000) {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const response = await fetch(url);
-          if (response.ok) return await response.json();
-
-          // If 503 (backend sleeping), retry
-          if (response.status === 503 && i < retries - 1) {
-            console.log(`Backend waking up, retry ${i + 1}/${retries}...`);
-            await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
-            continue;
-          }
-
-          throw new Error(response.status === 404 ? "Symbol Not Found" : `HTTP ${response.status}`);
-        } catch (error) {
-          if (i === retries - 1) throw error;
-          console.log(`Fetch attempt ${i + 1} failed, retrying...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    async function updateView() {
-      if (isFetching) return;
-
-      const input = document.getElementById("stockSearch").value.toUpperCase().trim();
-      const ticker = input || currentTicker;
-
-      // Check Cache
-      if (_CACHE.has(ticker)) {
-        renderWithData(_CACHE.get(ticker));
-        return;
-      }
-
-      isFetching = true;
-
-      // UI Reset
-      const val = document.getElementById("predictVal");
-      const meta = document.getElementById("predictMeta");
-      const prob = document.getElementById("ai-prob");
-      const chart = document.getElementById("tv-chart-main");
-      const newsContainer = document.getElementById("news-container");
-
-      if (val) {
-        val.innerHTML = '<span class="pulse-live"></span> ANALYZING...';
-        meta.innerText = "Connecting to neural network...";
-        prob.innerText = "--";
-      }
-
-      // Skeleton loaders
-      if (chart) chart.innerHTML = '<div class="skeleton" style="height:100%;width:100%"></div>';
-      if (newsContainer) newsContainer.innerHTML = '<div class="skeleton" style="height:100%;width:100%;padding:20px"></div>';
-
-      try {
-        console.log(`Fetching data for ${ticker}...`);
-
-        // Parallel fetching with robust retry
-        const [data, news] = await Promise.all([
-          robustFetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`)
-            .catch(e => {
-              console.error("Prediction fetch failed:", e);
-              return { error: true, message: e.message };
-            }),
-          robustFetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
-            .catch(e => {
-              console.error("News fetch failed:", e);
-              return [];
-            })
-        ]);
-
-        if (data.error) {
-          throw new Error(data.message || "Failed to fetch prediction");
-        }
-
-        data.news = news;
-        _CACHE.set(ticker, data);
-
-        console.log("Data fetched successfully:", data);
-        renderWithData(data);
-      } catch (e) {
-        console.error("Update view error:", e);
-        handleUpdateError(e);
-      } finally {
-        isFetching = false;
-      }
-    }
-
-    function renderWithData(data) {
-      const val = document.getElementById("predictVal");
-      const meta = document.getElementById("predictMeta");
-      const prob = document.getElementById("ai-prob");
-      const chartContainer = document.getElementById("tv-chart-main");
-
-      const trueSymbol = data.symbol;
-      const tvSymbol = data.tv_symbol || trueSymbol;
-      currentTicker = trueSymbol;
-
-      // Update Chart
-      if (chartContainer) {
-        chartContainer.innerHTML = "";
-        new TradingView.widget({
-          autosize: true,
-          symbol: tvSymbol,
-          interval: "D",
-          timezone: "Etc/UTC",
-          theme: "dark",
-          style: "1",
-          locale: "en",
-          toolbar_bg: "#0d1117",
-          container_id: "tv-chart-main",
-        });
-      }
-
-      // Update News in correct container
-      const newsContainer = document.getElementById("news-container");
-      if (data.news && data.news.length > 0 && newsContainer) {
-        newsContainer.innerHTML = `<div style="padding:15px;overflow-y:auto;height:100%">
-          ${data.news.slice(0, 12).map(n => `
-            <div style="margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:10px;cursor:pointer" onclick="window.open('${n.link}', '_blank')">
-                <div style="color:#f0f6fc;text-decoration:none;font-size:0.82rem;font-weight:600;margin-bottom:6px;line-height:1.5">${n.title}</div>
-                <div style="font-size:0.7rem;color:#8b949e;display:flex;justify-content:space-between;gap:10px">
-                    <span style="color:#58a6ff">${n.publisher}</span>
-                    <span>${new Date(n.providerPublishTime * 1000).toLocaleDateString()}</span>
-                </div>
-            </div>
-          `).join('')}
-        </div>`;
-      } else if (newsContainer) {
-        // Fallback to TradingView news widget
-        newsContainer.innerHTML = "";
-        const script = document.createElement("script");
-        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
-        script.async = true;
-        script.innerHTML = JSON.stringify({
-          feedMode: "symbol",
-          symbol: tvSymbol,
-          isTransparent: true,
-          displayMode: "regular",
-          width: "100%",
-          height: "100%",
-          colorTheme: "dark",
-          locale: "en"
-        });
-        newsContainer.appendChild(script);
-      }
-
-      // Update AI Signal
-      const isUp = data.prediction === "UP";
-      val.innerText = isUp ? "STRONG BUY" : "SELL / SHORT";
-      val.style.color = isUp ? "var(--success)" : "var(--danger)";
-      val.style.fontSize = "1.8rem";
-      val.style.fontWeight = "900";
-      val.style.textShadow = isUp ? "0 0 25px rgba(63, 185, 80, 0.4)" : "0 0 25px rgba(248, 81, 73, 0.4)";
-
-      const signalCard = document.getElementById("card-signal");
-      if (window.innerWidth < 900 && signalCard) {
-        signalCard.style.borderColor = isUp ? "var(--success)" : "var(--danger)";
-        signalCard.style.boxShadow = isUp ? "0 0 30px rgba(63, 185, 80, 0.2)" : "0 0 30px rgba(248, 81, 73, 0.2)";
-      }
-
-      meta.innerText = `${data.symbol} | $${data.price || 'N/A'}`;
-      let confVal = (data.confidence || data.probability || 0) * 100;
-      if (confVal > 99.9) confVal = 99.9;
-      prob.innerText = confVal.toFixed(2) + "%";
-
-      console.log(`✓ Rendered ${data.symbol} - ${data.prediction} (${confVal.toFixed(1)}%)`);
-    }
-
-    function handleUpdateError(e) {
-      const val = document.getElementById("predictVal");
-      const meta = document.getElementById("predictMeta");
-      const prob = document.getElementById("ai-prob");
-      console.error(e);
-      if (val) {
-        val.innerText = e.message === "Symbol Not Found" ? "INVALID SYMBOL" : "OFFLINE";
-        val.style.color = "var(--warning)";
-        meta.innerText = e.message === "Symbol Not Found" ? "Try: MSFT, AAPL, BTCUSD" : "Backend Connection Failed";
-        prob.innerText = "ERR";
-      }
-      initMovers();
-    }
-
-    /* ===== LEDGER LOGIC ===== */
-    function renderLedger() {
-      const body = document.getElementById("assetTable");
-      if (!body) return;
-      body.innerHTML = "";
-
-      const isMobile = window.innerWidth < 900;
-
-      if (isMobile) {
-        // Advanced Card-based Layout for Mobile
-        myAssets.forEach((asset, index) => {
-          const price = (Math.random() * 500 + 100).toFixed(2);
-          const change = (Math.random() * 4 - 2).toFixed(2);
-          const isPos = change >= 0;
-          body.innerHTML += `
-            <div class="glass-card" style="margin-bottom:15px; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-weight:800; color:var(--accent-glow); font-size:1.1rem" onclick="viewSymbol('${asset}')">${asset}</div>
-                <div style="font-size:0.7rem; color:var(--text-secondary)">TRACKING ACTIVE</div>
-              </div>
-              <div style="text-align:right">
-                <div style="font-family:'JetBrains Mono'; font-weight:bold">$${price}</div>
-                <div style="color:${isPos ? 'var(--success)' : 'var(--danger)'}; font-size:0.8rem; font-family:'JetBrains Mono'">${isPos ? '+' : ''}${change}%</div>
-              </div>
-              <button onclick="removeAsset(${index})" style="background:none; border:1px solid var(--danger); color:var(--danger); border-radius:8px; padding:8px 12px; font-size:0.7rem;">✕</button>
-            </div>
-          `;
-        });
-      } else {
-        // Standard Desktop Table
-        myAssets.forEach((asset, index) => {
-          const price = (Math.random() * 500 + 100).toFixed(2);
-          const change = (Math.random() * 4 - 2).toFixed(2);
-          const isPos = change >= 0;
-          body.innerHTML += `
-        <tr class="ledger-row">
-          <td onclick="viewSymbol('${asset}')" style="cursor:pointer;color:var(--accent-glow);font-weight:bold">${asset}</td>
-          <td style="font-size: 0.7rem; color: var(--text-secondary)">TRACKING</td>
-          <td style="font-family:'JetBrains Mono'">$${price}</td>
-          <td style="color:${isPos ? 'var(--success)' : 'var(--danger)'}; font-family:'JetBrains Mono'">${isPos ? '+' : ''}${change}%</td>
-          <td><button onclick="removeAsset(${index})" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:4px 8px;font-size:.65rem;border-radius:4px;cursor:pointer">REMOVE</button></td>
-        </tr>`;
-        });
-      }
-      localStorage.setItem("stockai_ledger", JSON.stringify(myAssets));
-    }
-
-    function addAsset() {
-      const val = document.getElementById("assetInput").value.toUpperCase().trim();
-      if (val && !myAssets.includes(val)) {
-        myAssets.push(val);
-        renderLedger();
-        document.getElementById("assetInput").value = "";
-      }
-    }
-
-    function removeAsset(index) {
-      myAssets.splice(index, 1);
-      renderLedger();
-    }
-
-    function viewSymbol(symbol) {
-      document.getElementById("stockSearch").value = symbol;
-      switchTab("market");
-      updateView();
-    }
-
-    /* ===== INITIALIZATION ===== */
-    window.onload = () => {
-      checkSession();
-
-      // Add Enter Key Listener
-      document.getElementById("stockSearch").addEventListener("keypress", function (event) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          updateView();
-        }
-      });
-    };
-  </script>
-
+  <script src="script.js?v=3"></script>
 </body>
 
 </html>
