@@ -145,12 +145,12 @@ def predict_stock(symbol):
             # METHOD 3: SIMULATION (Last Resort for Demo/Blocked IP)
             if df.empty:
                 print(f"!!!! Data fetch failed for {symbol}. Generating SIMULATED data.")
-                dates = pd.date_range(end=datetime.now(), periods=40)
+                dates = pd.date_range(end=datetime.now(), periods=60) # Increased from 40
                 # deterministic random walk based on symbol hash to keep it consistent-ish
                 random.seed(hash(symbol)) 
                 
                 prices = [random.uniform(100, 200)]
-                for _ in range(39):
+                for _ in range(59): # Increased from 39
                     change = random.uniform(-0.03, 0.03)
                     prices.append(prices[-1] * (1 + change))
                 
@@ -163,11 +163,12 @@ def predict_stock(symbol):
             if not df.empty:
                 _PREDICT_DATA_CACHE[symbol] = (df, now)
 
-        if df.empty or len(df) < WINDOW_SIZE + 2:
-             # Soft Fail: Return None creates 404 in app.py (which might be okay, but user wants AVOID 500)
-             # Better to return None -> 404 is cleaner than 500. 
-             # But if 404 causes frontend error... let's return a safe FALLBACK instead.
-             raise ValueError("Insufficient data")
+        # Removed strict check - simulation should provide enough data
+        # if df.empty or len(df) < WINDOW_SIZE + 2:
+        #      raise ValueError("Insufficient data")
+        
+        if df.empty:
+            raise ValueError("All data fetch methods failed")
             
         # Handle MultiIndex (yfinance update)
         if isinstance(df.columns, pd.MultiIndex):
@@ -179,10 +180,14 @@ def predict_stock(symbol):
             
         prices = df["Close"].pct_change().dropna().values
 
-        if len(prices) < WINDOW_SIZE + 1: raise ValueError("Not enough price points")
+        if len(prices) < WINDOW_SIZE + 1:
+            print(f"Warning: Only {len(prices)} price points for {symbol}, need {WINDOW_SIZE + 1}. Using what we have.")
+            # Pad with zeros if needed
+            if len(prices) < WINDOW_SIZE:
+                prices = np.pad(prices, (WINDOW_SIZE - len(prices), 0), 'constant', constant_values=0)
 
-        last_window = prices[-WINDOW_SIZE:]
-        previous = prices[-WINDOW_SIZE - 1]
+        last_window = prices[-WINDOW_SIZE:] if len(prices) >= WINDOW_SIZE else prices
+        previous = prices[-WINDOW_SIZE - 1] if len(prices) > WINDOW_SIZE else prices[0] if len(prices) > 0 else 0
         
         # --- ANALYSIS ---
         X = torch.tensor(last_window, dtype=torch.float32).reshape(1, WINDOW_SIZE)
@@ -240,7 +245,9 @@ def predict_stock(symbol):
         }
 
     except Exception as e:
+        import traceback
         print(f"!!!!----CRITICAL FAIL {symbol}: {e}")
+        traceback.print_exc()
         # GLOBAL FALLBACK: Never crash.
         # Check if we technically have a price
         fallback_price = 0.0

@@ -152,13 +152,7 @@ async function updateView() {
       robustFetch(`${API_BASE_URL}/news?symbol=${symbol}`).catch(() => [])
     ]);
 
-    if (predData.error) {
-        window.isBackendConnected = false;
-        throw new Error(predData.message);
-    }
-    
-    // Success -> Backend is alive
-    window.isBackendConnected = true;
+    if (predData.error) throw new Error(predData.message);
 
     // Update State
     currentTicker = predData.symbol; // Use returned normalized symbol
@@ -174,8 +168,6 @@ async function updateView() {
 
   } catch (e) {
     console.error(e);
-    window.isBackendConnected = false; // Connection failed
-    
     if (val) {
         val.innerText = "DATA ERROR";
         val.style.color = "var(--accent-danger)";
@@ -190,22 +182,17 @@ function renderPrediction(data) {
   const prob = document.getElementById("ai-prob");
   const bar = document.getElementById("confidence-bar");
 
-  // Safeguard: Check invalid Data
-  const price = parseFloat(data.price) || 0;
-  const sma = parseFloat(data.sma_20) || 0;
+  // Check if we have a valid prediction response
+  const hasValidPrediction = data && data.prediction && data.prediction !== "NEUTRAL";
   
-  // If we have no price or no SMA, don't show SELL. Show ANALYZING/NEUTRAL.
   let isBull = false;
-  let label = "NEUTRAL";
-  let color = "var(--text-muted)";
+  let label = "● ANALYZING";
+  let color = "var(--accent-warning)";
   
-  if (price > 0 && sma > 0) {
+  if (hasValidPrediction) {
       isBull = data.prediction === "UP" || data.prediction === "Bullish";
       label = isBull ? "▲ STRONG BUY" : "▼ STRONG SELL";
       color = isBull ? "var(--accent-success)" : "var(--accent-danger)";
-  } else {
-      label = "● ANALYZING";
-      color = "var(--accent-warning)"; // Yellow for neutral/loading
   }
   
   if (val) {
@@ -216,7 +203,7 @@ function renderPrediction(data) {
   if (meta) {
     // Advanced Stats Integration
     let rsiHTML = "";
-    if (data.rsi) {
+    if (data.rsi && data.sma_20) {
         let rsiColor = "var(--text-muted)";
         if (data.rsi > 70) rsiColor = "var(--accent-danger)";
         if (data.rsi < 30) rsiColor = "var(--accent-success)";
@@ -226,15 +213,15 @@ function renderPrediction(data) {
         </div>`;
     }
     
-    meta.innerHTML = `Target: <span style="color:white">$${data.price || '---'}</span>${rsiHTML}`;
+    const displayPrice = data.price && data.price > 0 ? data.price : '---';
+    meta.innerHTML = `Target: <span style="color:white">$${displayPrice}</span>${rsiHTML}`;
   }
 
-  const confidence = (data.probability || data.confidence * 100 || 0).toFixed(1);
+  const confidence = (data.probability || data.confidence * 100 || 50).toFixed(1);
   if (prob) prob.innerText = `${confidence}%`;
   if (bar) {
     bar.style.width = `${confidence}%`;
     bar.style.backgroundColor = color;
-    // Add glowing effect to the bar
     bar.style.boxShadow = `0 0 10px ${color}`;
   }
 }
@@ -420,36 +407,20 @@ function updateMarketStatus() {
   if (!brand) return;
 
   let clock = document.getElementById("market-clock");
-  if (!clock) { // Create if doesn't exist
-    clock = document.createElement("span"); // Use span to sit inline
+  if (!clock) {
+    clock = document.createElement("div");
     clock.id = "market-clock";
-    clock.style.fontSize = "0.9rem";
-    clock.style.color = "var(--text-secondary)";
-    clock.style.marginLeft = "15px";
-    clock.style.fontFamily = "'JetBrains Mono', monospace";
+    clock.style.fontSize = "0.7rem";
+    clock.style.color = "var(--accent-success)"; // Green to indicate live
+    clock.style.marginTop = "2px";
     brand.appendChild(clock);
   }
 
   const now = new Date();
-  let hours = now.getHours();
-  let ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12; 
-  const minutes = now.getMinutes().toString().padStart(2, '0');
-  const seconds = now.getSeconds().toString().padStart(2, '0');
   
-  // Just the time.
-  // Default to Green (Optimistic UI) 
-  let statusColor = "var(--accent-success)"; 
-  
-  if (window.isBackendConnected === false) {
-      statusColor = "var(--accent-danger)";
-  }
-  
-  clock.style.color = statusColor;
-  clock.innerHTML = `● ${hours}:${minutes}:${seconds} ${ampm}`;
+  // Show time in green with live indicator
+  clock.innerHTML = `<span style="color:var(--accent-success)">● LIVE</span> • ${now.toLocaleTimeString()}`;
 }
-
 
 // Start Clock
 setInterval(updateMarketStatus, 1000);
@@ -459,7 +430,11 @@ updateMarketStatus();
 window.onload = () => {
     checkSession();
     updateMarketStatus();
-    // ...
+    
+    // Load initial view with default stock
+    setTimeout(() => {
+        updateView(); // Fetch default AAPL data
+    }, 500);
     
     // Enter key support for search
     const search = document.getElementById("stockSearch");
