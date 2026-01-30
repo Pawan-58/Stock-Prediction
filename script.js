@@ -152,7 +152,13 @@ async function updateView() {
       robustFetch(`${API_BASE_URL}/news?symbol=${symbol}`).catch(() => [])
     ]);
 
-    if (predData.error) throw new Error(predData.message);
+    if (predData.error) {
+        window.isBackendConnected = false;
+        throw new Error(predData.message);
+    }
+    
+    // Success -> Backend is alive
+    window.isBackendConnected = true;
 
     // Update State
     currentTicker = predData.symbol; // Use returned normalized symbol
@@ -168,6 +174,8 @@ async function updateView() {
 
   } catch (e) {
     console.error(e);
+    window.isBackendConnected = false; // Connection failed
+    
     if (val) {
         val.innerText = "DATA ERROR";
         val.style.color = "var(--accent-danger)";
@@ -430,7 +438,15 @@ function updateMarketStatus() {
   const minutes = now.getMinutes().toString().padStart(2, '0');
   const seconds = now.getSeconds().toString().padStart(2, '0');
   
-  // Just the time, no "London" or "NYC"
+  // Just the time.
+  // Default to Green (Optimistic UI) 
+  let statusColor = "var(--accent-success)"; 
+  
+  if (window.isBackendConnected === false) {
+      statusColor = "var(--accent-danger)";
+  }
+  
+  clock.style.color = statusColor;
   clock.innerHTML = `● ${hours}:${minutes}:${seconds} ${ampm}`;
 }
 
