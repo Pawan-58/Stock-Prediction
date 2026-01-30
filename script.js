@@ -14,14 +14,13 @@ function checkSession() {
 
   if (isAuth) {
     if (loginScreen) loginScreen.style.display = "none";
-    if (dashboard) dashboard.style.display = "contents"; // Match new structure
+    if (dashboard) dashboard.style.display = "flex";
     setTimeout(() => {
       initTicker();
       initMovers();
       renderLedger();
-      updateView();
-      addLog("SYSTEM_CORTEX_REINITIALIZED");
-      addLog("SECURE_TUNNEL_ESTABLISHED");
+      addLog("SYSTEM_INITIALIZED");
+      addLog("READY_FOR_ANALYSIS");
     }, 100);
   } else {
     if (loginScreen) loginScreen.style.display = "flex";
