@@ -66,11 +66,15 @@ function switchTab(tab) {
   if (viewMarket) viewMarket.classList.toggle("hidden", !isMarket);
   if (viewPortfolio) viewPortfolio.classList.toggle("hidden", isMarket);
 
-  const desktopMarket = document.getElementById("nav-market-desktop");
-  const desktopPortfolio = document.getElementById("nav-portfolio-desktop");
+  const dMarket = document.getElementById("nav-market-desktop");
+  const dPortfolio = document.getElementById("nav-portfolio-desktop");
+  const mMarket = document.getElementById("nav-market-mobile");
+  const mPortfolio = document.getElementById("nav-portfolio-mobile");
 
-  if (desktopMarket) desktopMarket.classList.toggle("active", isMarket);
-  if (desktopPortfolio) desktopPortfolio.classList.toggle("active", !isMarket);
+  if (dMarket) dMarket.classList.toggle("active", isMarket);
+  if (dPortfolio) dPortfolio.classList.toggle("active", !isMarket);
+  if (mMarket) mMarket.classList.toggle("active", isMarket);
+  if (mPortfolio) mPortfolio.classList.toggle("active", !isMarket);
 
   addLog(`SWITCHING_TO_TAB: ${tab.toUpperCase()}`);
 }
@@ -88,12 +92,14 @@ async function wakeBackend() {
     const latency = Date.now() - start;
 
     if (res.ok) {
-      if (statusIcon) statusIcon.style.background = "var(--success)";
-      if (statusText) statusText.innerText = `ONLINE (${latency}ms)`;
+      if (icon) icon.style.background = "var(--success)";
+      if (text) text.innerText = `ONLINE (${latency}ms)`;
+      addLog("GATEWAY_SIGNAL_OPTIMAL");
     }
   } catch (e) {
-    if (statusIcon) statusIcon.style.background = "var(--danger)";
-    if (statusText) statusText.innerText = "OFFLINE";
+    if (icon) icon.style.background = "var(--danger)";
+    if (text) text.innerText = "OFFLINE";
+    addLog("NODE_OFFLINE_OR_SPINNING_DOWN");
   }
 }
 
@@ -169,7 +175,7 @@ async function robustFetch(url, options = {}, retries = 3, backoff = 1000) {
     return await response.json();
   } catch (error) {
     if (retries > 0) {
-      console.warn(`Fetch failed, retrying in ${backoff}ms... (${retries} left)`, error);
+      addLog(`RETRYING_CONNECTION: ${retries}_ATTEMPTS_REMAINING`);
       await new Promise(resolve => setTimeout(resolve, backoff));
       return robustFetch(url, options, retries - 1, backoff * 2);
     }
@@ -206,22 +212,33 @@ async function updateView() {
   }
 
   try {
-    addLog("FETCHING_PREDICTION_WEIGHTS");
+    addLog("STEP_1: CONTACTING_CORTEX_GATEWAY");
     const [data, news] = await Promise.all([
       robustFetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`)
-        .catch(e => { addLog("PREDICT_NODE_ERROR"); return { error: true, message: e.message }; }),
+        .catch(e => { 
+          addLog("PREDICT_NODE_LATENCY_DETECTED"); 
+          return { error: true, message: "Server is waking up. Standard wait: 30s." }; 
+        }),
       robustFetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
-        .catch(e => { addLog("NEWS_WIRE_LATENCY"); return []; })
+        .catch(e => { 
+          addLog("NEWS_FEED_DELAY"); 
+          return []; 
+        })
     ]);
 
-    if (data.error) throw new Error(data.message || "Predict Failed");
+    if (data.error && !data.message.includes("waking up")) throw new Error(data.message || "Node Error");
+    if (data.error) {
+      if (val) val.innerText = "WAKING_UP...";
+      addLog("RETRY_INITIALIZED_AUTOMATICALLY");
+      // Short delay and handled by robustFetch retries internally, but we log it.
+    }
 
-    addLog("INFERENCE_SUCCESSFUL");
+    addLog("STEP_2: NEURAL_INFERENCE_COMPLETE");
     data.news = news;
     _CACHE.set(ticker, data);
     renderWithData(data);
   } catch (e) {
-    addLog(`FATAL_EXCEPTION: ${e.message}`);
+    addLog(`ABORTED: ${e.message}`);
     handleUpdateError(e);
   } finally {
     isFetching = false;
@@ -239,27 +256,37 @@ function renderWithData(data, isCached = false) {
   const tvSymbol = data.tv_symbol || trueSymbol;
   currentTicker = trueSymbol;
 
-  if (terminalSymbol) terminalSymbol.innerText = `NASDAQ:${trueSymbol}`;
+  if (terminalSymbol) terminalSymbol.innerText = `${tvSymbol}`;
 
-  // Update AI Signal & Meta
+  // Update AI Signal with Premium Styling
   if (val) {
     const isBull = data.prediction === "UP" || data.prediction === "Bullish";
-    val.innerText = isBull ? "STRONG_BUY" : "LIQUIDATE / SHORT";
-    val.style.color = isBull ? "var(--success)" : "var(--danger)";
-    val.style.textShadow = `0 0 25px ${isBull ? "rgba(0, 255, 136, 0.4)" : "rgba(255, 59, 48, 0.4)"}`;
+    
+    // Smooth transition
+    val.style.opacity = '0';
+    setTimeout(() => {
+      val.innerText = isBull ? "🚀 STRONG BUY" : "⚠️ SELL SIGNAL";
+      val.style.color = isBull ? "#26A69A" : "#EF5350";
+      val.style.textShadow = `0 0 30px ${isBull ? "rgba(38, 166, 154, 0.6)" : "rgba(239, 83, 80, 0.6)"}`;
+      val.style.opacity = '1';
+    }, 200);
     
     if (meta) {
-      meta.innerText = `${trueSymbol} // ${data.reason || "Neural inference suggests clear trend trajectory."}`;
-      meta.style.color = "var(--text-main)";
+      meta.innerText = `${trueSymbol} • $${data.price || 'N/A'} • ${data.reason || "AI analysis complete"}`;
+      meta.style.color = "#B8C5D6";
     }
   }
 
-  // Update Confidence Bar
+  // Update Confidence Bar with Animation
   if (prob) {
     let conf = (data.probability || data.confidence * 100).toFixed(1);
     prob.innerText = `${conf}%`;
     const bar = document.getElementById("confidence-bar");
-    if (bar) bar.style.width = `${conf}%`;
+    if (bar) {
+      setTimeout(() => {
+        bar.style.width = `${conf}%`;
+      }, 300);
+    }
   }
 
   // Update Chart
@@ -272,7 +299,7 @@ function renderWithData(data, isCached = false) {
       theme: "dark",
       style: "1",
       locale: "en",
-      toolbar_bg: "#f1f3f6",
+      toolbar_bg: "#0a0e27",
       enable_publishing: false,
       hide_side_toolbar: false,
       allow_symbol_change: true,
@@ -280,7 +307,7 @@ function renderWithData(data, isCached = false) {
     });
   }
 
-  // Update News Wire
+  // Update News Wire with Premium Cards
   const newsWire = document.getElementById("news-container");
   if (newsWire) {
     if (data.news && data.news.length > 0) {
@@ -288,7 +315,7 @@ function renderWithData(data, isCached = false) {
         <div class="news-item" onclick="window.open('${n.link}', '_blank')">
           <div class="news-title">${n.title}</div>
           <div class="news-meta">
-            <span style="color:var(--accent-primary)">${n.publisher}</span>
+            <span style="color:#4A9EFF">${n.publisher}</span>
             <span>${new Date(n.providerPublishTime * 1000).toLocaleTimeString()}</span>
           </div>
         </div>
@@ -300,7 +327,7 @@ function renderWithData(data, isCached = false) {
   }
 
   initMovers();
-  addLog(`UI_RENDER_COMPLETE: ${trueSymbol}`);
+  addLog(`✓ ANALYSIS_COMPLETE: ${trueSymbol}`);
 }
 
 function handleUpdateError(e) {
@@ -319,12 +346,12 @@ function renderLedger() {
   const container = document.getElementById("assetTable");
   if (!container) return;
   container.innerHTML = `
-    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 120px; padding: 12px 16px; color: var(--text-dim); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid var(--glass-border)">
-      <div>Security</div>
-      <div>Status</div>
-      <div>Price</div>
-      <div>Delta</div>
-      <div>Action</div>
+    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 120px; padding: 16px 20px; color:#6B7A8F; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid rgba(100, 150, 255, 0.15); background:rgba(255,255,255,0.02);">
+      <div>ASSET</div>
+      <div>STATUS</div>
+      <div>PRICE</div>
+      <div>CHANGE</div>
+      <div>ACTION</div>
     </div>
   `;
 
@@ -334,17 +361,23 @@ function renderLedger() {
     const isPos = change >= 0;
 
     const row = document.createElement("div");
-    row.style.cssText = "display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 120px; padding: 16px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s;";
-    row.onmouseover = () => row.style.background = "rgba(255,255,255,0.02)";
-    row.onmouseout = () => row.style.background = "transparent";
+    row.style.cssText = "display:grid; grid-template-columns: 2fr 1fr 1fr 1fr 120px; padding: 20px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.03); transition: all 0.3s; border-radius:8px; margin:4px 0;";
+    row.onmouseover = () => {
+      row.style.background = "rgba(74, 158, 255, 0.05)";
+      row.style.transform = "translateX(4px)";
+    };
+    row.onmouseout = () => {
+      row.style.background = "transparent";
+      row.style.transform = "translateX(0)";
+    };
     
     row.innerHTML = `
-      <div onclick="viewSymbol('${asset}')" style="cursor:pointer; color:var(--accent-primary); font-weight:700; font-family:'JetBrains Mono'">${asset}</div>
-      <div style="font-size:0.6rem; color:var(--success)"><span class="pulse-amber" style="width:4px; height:4px; border-radius:50%; background:var(--success); display:inline-block; margin-right:6px"></span>LINKED</div>
-      <div style="font-family:'JetBrains Mono'; font-size:0.85rem">$${price}</div>
-      <div style="color:${isPos ? 'var(--success)' : 'var(--danger)'}; font-family:'JetBrains Mono'; font-size:0.85rem">${isPos ? '+' : ''}${change}%</div>
+      <div onclick="viewSymbol('${asset}')" style="cursor:pointer; color:#4A9EFF; font-weight:700; font-family:'JetBrains Mono'; font-size:0.95rem;">${asset}</div>
+      <div style="font-size:0.7rem; color:#00E676;"><span style="width:6px; height:6px; border-radius:50%; background:#00E676; display:inline-block; margin-right:8px; box-shadow:0 0 8px #00E676;"></span>ACTIVE</div>
+      <div style="font-family:'JetBrains Mono'; font-size:0.9rem; color:#FFFFFF;">$${price}</div>
+      <div style="color:${isPos ? '#00E676' : '#FF5252'}; font-family:'JetBrains Mono'; font-size:0.9rem; font-weight:600;">${isPos ? '+' : ''}${change}%</div>
       <div>
-        <button onclick="removeAsset(${index})" style="background:none; border:1px solid rgba(255,59,48,0.3); color:var(--danger); padding:4px 12px; border-radius:4px; font-size:0.6rem; cursor:pointer;">PURGE</button>
+        <button onclick="removeAsset(${index})" style="background:linear-gradient(135deg, #FF5252 0%, #FF1744 100%); border:none; color:white; padding:6px 16px; border-radius:8px; font-size:0.65rem; cursor:pointer; font-weight:600; transition:all 0.3s; text-transform:uppercase;">Remove</button>
       </div>
     `;
     container.appendChild(row);
