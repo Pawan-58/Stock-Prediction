@@ -160,7 +160,7 @@ async function updateView() {
 
     renderPrediction(predData);
     renderChart(predData.tv_symbol || symbol);
-    renderNews(newsData);
+    renderNews(newsData, predData.tv_symbol || symbol);
     
     // Update Header Symbol
     const title = document.getElementById("terminal-symbol");
@@ -182,11 +182,26 @@ function renderPrediction(data) {
   const prob = document.getElementById("ai-prob");
   const bar = document.getElementById("confidence-bar");
 
-  const isBull = data.prediction === "UP" || data.prediction === "Bullish";
-  const color = isBull ? "var(--accent-success)" : "var(--accent-danger)";
+  // Safeguard: Check invalid Data
+  const price = parseFloat(data.price) || 0;
+  const sma = parseFloat(data.sma_20) || 0;
+  
+  // If we have no price or no SMA, don't show SELL. Show ANALYZING/NEUTRAL.
+  let isBull = false;
+  let label = "NEUTRAL";
+  let color = "var(--text-muted)";
+  
+  if (price > 0 && sma > 0) {
+      isBull = data.prediction === "UP" || data.prediction === "Bullish";
+      label = isBull ? "▲ STRONG BUY" : "▼ STRONG SELL";
+      color = isBull ? "var(--accent-success)" : "var(--accent-danger)";
+  } else {
+      label = "● ANALYZING";
+      color = "var(--accent-warning)"; // Yellow for neutral/loading
+  }
   
   if (val) {
-    val.innerHTML = isBull ? "▲ STRONG BUY" : "▼ STRONG SELL";
+    val.innerHTML = label;
     val.style.color = color;
   }
   
@@ -248,13 +263,13 @@ function renderChart(tvSymbol) {
   });
 }
 
-function renderNews(newsItems) {
+function renderNews(newsItems, fallbackSymbol) {
   const container = document.getElementById("news-container");
   if (!container) return;
 
   // Strict check: If null, undefined, or empty array -> Fallback
   if (!newsItems || !Array.isArray(newsItems) || newsItems.length === 0) {
-    console.log("News API returned empty/invalid. Loading Widget.");
+    console.log("News API returned empty/invalid. Loading Widget for:", fallbackSymbol);
     container.innerHTML = "";
     
     // Create a container for the widget to ensure height
@@ -269,7 +284,7 @@ function renderNews(newsItems) {
     script.async = true;
     script.innerHTML = JSON.stringify({
       feedMode: "symbol",
-      symbol: currentTicker,
+      symbol: fallbackSymbol || currentTicker,
       colorTheme: "dark",
       isTransparent: true,
       displayMode: "regular",
@@ -280,6 +295,8 @@ function renderNews(newsItems) {
     widgetContainer.appendChild(script);
     return;
   }
+  
+  // ... (Rest of function)
 
   // API News Render
   const html = newsItems.slice(0, 8).map(item => `
@@ -434,9 +451,13 @@ window.onload = () => {
     const search = document.getElementById("stockSearch");
     if(search) {
         search.addEventListener("keypress", (e) => {
-            if(e.key === "Enter") {
-                updateView();
-            }
+            if(e.key === "Enter") updateView();
         });
+    }
+
+    // Click support for search button
+    const searchBtn = document.getElementById("searchBtn");
+    if(searchBtn) {
+        searchBtn.addEventListener("click", updateView);
     }
 };

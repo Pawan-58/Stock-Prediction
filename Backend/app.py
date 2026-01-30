@@ -190,9 +190,26 @@ async def predict(symbol: str = "AAPL"):
 async def get_news(symbol: str = "AAPL"):
     try:
         search_symbol = symbol.upper().strip()
+        
+        # --- Normalization Map (Same as Predict) ---
+        common_map = {
+            "MICROSOFT": "MSFT", "GOOG": "GOOGL", "GOOGLE": "GOOGL", "ALPHABET": "GOOGL",
+            "AMAZON": "AMZN", "TESLA": "TSLA", "APPLE": "AAPL", "BITCOIN": "BTC-USD",
+            "NVIDIA": "NVDA", "META": "META", "FACEBOOK": "META", "NETFLIX": "NFLX",
+            "VIX": "^VIX", "SPX": "^GSPC", "S&P500": "^GSPC", "DOW": "^DJI",
+            "DJIA": "^DJI", "NASDAQ": "^IXIC", "GOLD": "GC=F", "SILVER": "SI=F",
+            "CRUDE OIL": "CL=F", "OIL": "CL=F"
+        }
+        
+        if search_symbol in common_map:
+            search_symbol = common_map[search_symbol]
+
         if search_symbol.startswith("NASDAQ:"): search_symbol = search_symbol.replace("NASDAQ:", "")
         elif search_symbol.startswith("NSE:"): search_symbol = search_symbol.replace("NSE:", "") + ".NS"
         
+        # Double check .NS.NS
+        if ".NS.NS" in search_symbol: search_symbol = search_symbol.replace(".NS.NS", ".NS")
+
         tick = yf.Ticker(search_symbol)
         raw_news = await asyncio.to_thread(lambda: tick.news)
         

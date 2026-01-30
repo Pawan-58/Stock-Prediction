@@ -30,7 +30,7 @@
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.4);
   --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  
+
   --nav-width: 70px;
   --header-height: 60px;
 }
@@ -48,7 +48,8 @@ body {
   color: var(--text-primary);
   font-family: var(--font-main);
   height: 100vh;
-  overflow: hidden; /* App-like feel */
+  overflow: hidden;
+  /* App-like feel */
   display: flex;
   flex-direction: column;
 }
@@ -127,7 +128,8 @@ body {
 
 /* --- MOBILE BOTTOM NAV --- */
 .mobile-nav {
-  display: none; /* Hidden by default */
+  display: none;
+  /* Hidden by default */
   position: fixed;
   bottom: 20px;
   left: 20px;
@@ -168,25 +170,6 @@ body {
 }
 
 .search-wrapper {
-  position: relative;
-  width: 300px;
-}
-
-.search-input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 8px 12px 8px 40px;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--accent-glow);
   box-shadow: 0 0 0 3px var(--accent-soft);
   background: rgba(0, 0, 0, 0.5);
 }
@@ -216,7 +199,8 @@ body {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08); /* Replaces var(--glass-border) for compatibility */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Replaces var(--glass-border) for compatibility */
   border-radius: 16px;
   overflow: hidden;
   display: flex;
@@ -265,9 +249,20 @@ body {
 }
 
 @keyframes pulse {
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.9); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .card-body {
@@ -345,7 +340,8 @@ body {
 /* --- RESPONSIVE MEDIA QUERIES --- */
 @media (max-width: 900px) {
   .app-container {
-    grid-template-columns: 1fr; /* Remove sidebar rail */
+    grid-template-columns: 1fr;
+    /* Remove sidebar rail */
   }
 
   .nav-rail {
@@ -357,11 +353,13 @@ body {
   }
 
   .dashboard-grid {
-    grid-template-columns: 1fr; /* Stack dashboard */
+    grid-template-columns: 1fr;
+    /* Stack dashboard */
   }
 
   .scrollable-area {
-    padding-bottom: 100px; /* Space for mobile nav */
+    padding-bottom: 100px;
+    /* Space for mobile nav */
   }
 
   /* Make chart simpler on mobile */
@@ -393,7 +391,7 @@ body {
   border: 1px solid #30363d;
   border-radius: 16px;
   text-align: center;
-  box-shadow: 0 0 80px rgba(0,0,0,0.8);
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.8);
 }
 
 .login-input {
@@ -408,8 +406,22 @@ body {
 }
 
 /* --- UTILITIES --- */
-.hidden { display: none !important; }
-.text-green { color: var(--accent-success); }
-.text-red { color: var(--accent-danger); }
-.text-blue { color: var(--accent-glow); }
-.font-mono { font-family: var(--font-mono); }
+.hidden {
+  display: none !important;
+}
+
+.text-green {
+  color: var(--accent-success);
+}
+
+.text-red {
+  color: var(--accent-danger);
+}
+
+.text-blue {
+  color: var(--accent-glow);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
