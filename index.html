@@ -570,21 +570,34 @@
       </header>
 
       <main class="terminal-content">
-        <div id="view-market" class="terminal-grid">
+        <div id="view-market" style="display:grid; grid-template-columns: 1fr 420px; gap:24px;">
 
-          <!-- MAIN CHART -->
-          <section class="glass-card" style="grid-column: 1; grid-row: 1;">
-            <div class="card-header">
-              <span>📈 LIVE CHART // <span id="terminal-symbol">NASDAQ:AAPL</span></span>
-              <span style="color:var(--success-green)"><span class="pulse-live"></span>REAL-TIME</span>
+          <!-- LEFT COLUMN: Chart + Market Movers -->
+          <div style="display:flex; flex-direction:column; gap:24px;">
+
+            <!-- MAIN CHART -->
+            <section class="glass-card" style="min-height:500px;">
+              <div class="card-header">
+                <span>📈 LIVE CHART // <span id="terminal-symbol">NASDAQ:AAPL</span></span>
+                <span style="color:var(--bullish-green)"><span class="pulse-live"></span>REAL-TIME</span>
+              </div>
+              <div id="tv-chart-main" style="flex:1;"></div>
+            </section>
+
+            <!-- MARKET MOVERS -->
+            <div class="glass-card" style="min-height:450px;">
+              <div class="card-header">
+                <span>🔥 MARKET MOVERS</span>
+                <span style="color:var(--warning-amber)"><span class="pulse-live"></span>TRENDING</span>
+              </div>
+              <div id="movers-container" style="flex:1;"></div>
             </div>
-            <div id="tv-chart-main" style="flex:1;"></div>
-          </section>
+          </div>
 
-          <!-- INTELLIGENCE SIDEBAR -->
-          <aside style="grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: 24px;">
+          <!-- RIGHT COLUMN: AI Prediction + News -->
+          <aside style="display: flex; flex-direction: column; gap: 24px;">
 
-            <!-- AI PREDICTION -->
+            <!-- AI PREDICTION - TOP PRIORITY -->
             <div class="glass-card">
               <div class="card-header">🧠 AI PREDICTION ENGINE</div>
               <div class="prediction-display">
@@ -618,15 +631,6 @@
               </div>
             </div>
           </aside>
-
-          <!-- MARKET MOVERS -->
-          <div class="glass-card" style="grid-column: 1; height:550px;">
-            <div class="card-header">
-              <span>🔥 MARKET MOVERS</span>
-              <span style="color:var(--warning-amber)"><span class="pulse-live"></span>TRENDING</span>
-            </div>
-            <div id="movers-container" style="flex:1;"></div>
-          </div>
 
         </div>
 

@@ -211,33 +211,33 @@ async function updateView() {
   }
 
   try {
-    addLog("STEP_1: CONTACTING_CORTEX_GATEWAY");
+    addLog(`STEP_1: CONTACTING_BACKEND_API`);
     const [data, news] = await Promise.all([
       robustFetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`)
         .catch(e => { 
-          addLog("PREDICT_NODE_LATENCY_DETECTED"); 
-          return { error: true, message: "Server is waking up. Standard wait: 30s." }; 
+          addLog(`PREDICTION_ERROR: ${e.message}`); 
+          return { error: true, message: e.message }; 
         }),
       robustFetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
         .catch(e => { 
-          addLog("NEWS_FEED_DELAY"); 
+          addLog("NEWS_FETCH_FAILED"); 
           return []; 
         })
     ]);
 
-    if (data.error && !data.message.includes("waking up")) throw new Error(data.message || "Node Error");
     if (data.error) {
-      if (val) val.innerText = "WAKING_UP...";
-      addLog("RETRY_INITIALIZED_AUTOMATICALLY");
-      // Short delay and handled by robustFetch retries internally, but we log it.
+      throw new Error(data.message || "Failed to fetch prediction");
     }
 
-    addLog("STEP_2: NEURAL_INFERENCE_COMPLETE");
+    addLog(`STEP_2: DATA_RECEIVED - ${ticker}`);
+    addLog(`PREDICTION: ${data.prediction || 'N/A'}`);
+    addLog(`CONFIDENCE: ${((data.probability || data.confidence) * 100).toFixed(1)}%`);
+    
     data.news = news;
     _CACHE.set(ticker, data);
     renderWithData(data);
   } catch (e) {
-    addLog(`ABORTED: ${e.message}`);
+    addLog(`ERROR: ${e.message}`);
     handleUpdateError(e);
   } finally {
     isFetching = false;
@@ -288,13 +288,15 @@ function renderWithData(data, isCached = false) {
     }
   }
 
-  // Update Chart
-  if (chartContainer && !isCached) {
+  // Update Chart - ALWAYS render for searched symbol
+  if (chartContainer) {
     chartContainer.innerHTML = "";
+    addLog(`LOADING_CHART: ${tvSymbol}`);
     new TradingView.widget({
       autosize: true,
       symbol: tvSymbol,
       interval: "D",
+      timezone: "Etc/UTC",
       theme: "dark",
       style: "1",
       locale: "en",
