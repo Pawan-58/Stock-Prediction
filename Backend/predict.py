@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import time
+from datetime import datetime
 from model import SiameseNetwork
 from config import MODEL_PATH, WINDOW_SIZE
 

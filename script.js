@@ -412,30 +412,28 @@ function updateMarketStatus() {
   if (!brand) return;
 
   let clock = document.getElementById("market-clock");
-  if (!clock) {
-    clock = document.createElement("div");
+  if (!clock) { // Create if doesn't exist
+    clock = document.createElement("span"); // Use span to sit inline
     clock.id = "market-clock";
-    clock.style.fontSize = "0.7rem";
+    clock.style.fontSize = "0.9rem";
     clock.style.color = "var(--text-secondary)";
-    clock.style.marginTop = "2px";
+    clock.style.marginLeft = "15px";
+    clock.style.fontFamily = "'JetBrains Mono', monospace";
     brand.appendChild(clock);
   }
 
   const now = new Date();
-  const utcHours = now.getUTCHours();
-  const nyHour = (utcHours - 5 + 24) % 24; 
+  let hours = now.getHours();
+  let ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; 
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const seconds = now.getSeconds().toString().padStart(2, '0');
   
-  let statusHTML = "";
-  
-  // Show Session only if Active (NY or London)
-  if (nyHour >= 9 && nyHour < 16) {
-    statusHTML = `<span style="color:var(--accent-success)">● NY SESSION</span> • `;
-  } else if (nyHour >= 3 && nyHour < 11) {
-    statusHTML = `<span style="color:var(--accent-warning)">● LONDON</span> • `;
-  }
-  
-  clock.innerHTML = `${statusHTML}${now.toLocaleTimeString()}`;
+  // Just the time, no "London" or "NYC"
+  clock.innerHTML = `● ${hours}:${minutes}:${seconds} ${ampm}`;
 }
+
 
 // Start Clock
 setInterval(updateMarketStatus, 1000);
