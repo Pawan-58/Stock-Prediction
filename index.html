@@ -843,7 +843,34 @@
 
     /* ===== CACHE & STATE ===== */
     const _CACHE = new Map();
+    let isFetching = false;
+
+    // Robust fetch with retry logic for backend cold starts
+    async function robustFetch(url, retries = 3, delay = 2000) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) return await response.json();
+
+          // If 503 (backend sleeping), retry
+          if (response.status === 503 && i < retries - 1) {
+            console.log(`Backend waking up, retry ${i + 1}/${retries}...`);
+            await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+            continue;
+          }
+
+          throw new Error(response.status === 404 ? "Symbol Not Found" : `HTTP ${response.status}`);
+        } catch (error) {
+          if (i === retries - 1) throw error;
+          console.log(`Fetch attempt ${i + 1} failed, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
     async function updateView() {
+      if (isFetching) return;
+
       const input = document.getElementById("stockSearch").value.toUpperCase().trim();
       const ticker = input || currentTicker;
 
@@ -853,39 +880,56 @@
         return;
       }
 
+      isFetching = true;
+
       // UI Reset
       const val = document.getElementById("predictVal");
       const meta = document.getElementById("predictMeta");
       const prob = document.getElementById("ai-prob");
       const chart = document.getElementById("tv-chart-main");
-      const movers = document.getElementById("movers-container");
+      const newsContainer = document.getElementById("news-container");
 
       if (val) {
         val.innerHTML = '<span class="pulse-live"></span> ANALYZING...';
-        meta.innerText = "Synchronizing neural weights...";
+        meta.innerText = "Connecting to neural network...";
+        prob.innerText = "--";
       }
 
-      // Parallel Skeletons
+      // Skeleton loaders
       if (chart) chart.innerHTML = '<div class="skeleton" style="height:100%;width:100%"></div>';
-      if (movers) movers.innerHTML = '<div class="skeleton" style="height:100%;width:100%;padding:20px"></div>';
+      if (newsContainer) newsContainer.innerHTML = '<div class="skeleton" style="height:100%;width:100%;padding:20px"></div>';
 
       try {
-        // Parallel Fetching
-        const [predRes, newsRes] = await Promise.all([
-          fetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`),
-          fetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
+        console.log(`Fetching data for ${ticker}...`);
+
+        // Parallel fetching with robust retry
+        const [data, news] = await Promise.all([
+          robustFetch(`https://stock-prediction-3-ohd2.onrender.com/predict?symbol=${ticker}`)
+            .catch(e => {
+              console.error("Prediction fetch failed:", e);
+              return { error: true, message: e.message };
+            }),
+          robustFetch(`https://stock-prediction-3-ohd2.onrender.com/news?symbol=${ticker}`)
+            .catch(e => {
+              console.error("News fetch failed:", e);
+              return [];
+            })
         ]);
 
-        if (!predRes.ok) throw new Error("Symbol Not Found");
-        const data = await predRes.json();
-        const news = await newsRes.json();
+        if (data.error) {
+          throw new Error(data.message || "Failed to fetch prediction");
+        }
 
-        data.news = news; // Attach news to data packet
-        _CACHE.set(ticker, data); // Store in cache
+        data.news = news;
+        _CACHE.set(ticker, data);
 
+        console.log("Data fetched successfully:", data);
         renderWithData(data);
       } catch (e) {
+        console.error("Update view error:", e);
         handleUpdateError(e);
+      } finally {
+        isFetching = false;
       }
     }
 
@@ -906,30 +950,46 @@
           autosize: true,
           symbol: tvSymbol,
           interval: "D",
+          timezone: "Etc/UTC",
           theme: "dark",
           style: "1",
           locale: "en",
-          toolbar_bg: "#f1f3f6",
+          toolbar_bg: "#0d1117",
           container_id: "tv-chart-main",
         });
       }
 
-      // Update News
-      const movers = document.getElementById("movers-container");
-      if (data.news && data.news.length > 0 && movers) {
-        movers.innerHTML = `<div style="padding:10px;overflow-y:auto;height:100%">
-          ${data.news.slice(0, 10).map(n => `
-            <div style="margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:8px">
-                <a href="${n.link}" target="_blank" style="color:#e6edf3;text-decoration:none;font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px;line-height:1.4">${n.title}</a>
-                <div style="font-size:0.7rem;color:#8b949e;margin-top:4px;display:flex;justify-content:space-between">
-                    <span>${n.publisher}</span>
+      // Update News in correct container
+      const newsContainer = document.getElementById("news-container");
+      if (data.news && data.news.length > 0 && newsContainer) {
+        newsContainer.innerHTML = `<div style="padding:15px;overflow-y:auto;height:100%">
+          ${data.news.slice(0, 12).map(n => `
+            <div style="margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:10px;cursor:pointer" onclick="window.open('${n.link}', '_blank')">
+                <div style="color:#f0f6fc;text-decoration:none;font-size:0.82rem;font-weight:600;margin-bottom:6px;line-height:1.5">${n.title}</div>
+                <div style="font-size:0.7rem;color:#8b949e;display:flex;justify-content:space-between;gap:10px">
+                    <span style="color:#58a6ff">${n.publisher}</span>
                     <span>${new Date(n.providerPublishTime * 1000).toLocaleDateString()}</span>
                 </div>
             </div>
           `).join('')}
         </div>`;
-      } else {
-        initMovers();
+      } else if (newsContainer) {
+        // Fallback to TradingView news widget
+        newsContainer.innerHTML = "";
+        const script = document.createElement("script");
+        script.src = "https://s3.tradingview.com/external-embedding/embed-widget-timeline.js";
+        script.async = true;
+        script.innerHTML = JSON.stringify({
+          feedMode: "symbol",
+          symbol: tvSymbol,
+          isTransparent: true,
+          displayMode: "regular",
+          width: "100%",
+          height: "100%",
+          colorTheme: "dark",
+          locale: "en"
+        });
+        newsContainer.appendChild(script);
       }
 
       // Update AI Signal
@@ -946,10 +1006,12 @@
         signalCard.style.boxShadow = isUp ? "0 0 30px rgba(63, 185, 80, 0.2)" : "0 0 30px rgba(248, 81, 73, 0.2)";
       }
 
-      meta.innerText = `${data.symbol} | $${data.price}`;
-      let confVal = data.confidence * 100;
+      meta.innerText = `${data.symbol} | $${data.price || 'N/A'}`;
+      let confVal = (data.confidence || data.probability || 0) * 100;
       if (confVal > 99.9) confVal = 99.9;
       prob.innerText = confVal.toFixed(2) + "%";
+
+      console.log(`✓ Rendered ${data.symbol} - ${data.prediction} (${confVal.toFixed(1)}%)`);
     }
 
     function handleUpdateError(e) {
