@@ -1,0 +1,12 @@
+numpy
+torch 
+torchvision 
+python-multipart
+yfinance
+scikit-learn
+pandas
+uvicorn
+fastapi
+requests
+gunicorn
+httpx
